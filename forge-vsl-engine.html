@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Forge — VSL Engine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Syne:wght@400;500;600;700;800&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0c0c0b;--s1:#141413;--s2:#1c1c1a;--s3:#242422;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.14);
+  --text:#ede9e0;--muted:rgba(237,233,224,0.42);--dim:rgba(237,233,224,0.22);
+  --accent:#c9993a;--accent-dim:rgba(201,153,58,0.1);--accent-border:rgba(201,153,58,0.28);
+  --green:#3d9960;--green-dim:rgba(61,153,96,0.09);--red:#c05050;
+  --r:8px;--r2:12px;--topbar-h:56px;--bottomnav-h:64px;
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+}
+html{font-size:16px;-webkit-text-size-adjust:100%}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.topbar{position:fixed;top:0;left:0;right:0;height:var(--topbar-h);display:flex;align-items:center;justify-content:space-between;padding:0 20px;border-bottom:1px solid var(--border);background:rgba(12,12,11,0.96);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);z-index:200}
+.logo{display:flex;align-items:center;gap:9px;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;letter-spacing:0.02em}
+.logomark{width:26px;height:26px;background:var(--accent);border-radius:5px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.logomark svg{width:13px;height:13px}
+.logo-sub{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.05em}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.client-badge{font-size:11px;font-family:'DM Mono',monospace;color:var(--accent);background:var(--accent-dim);border:1px solid var(--accent-border);border-radius:4px;padding:3px 8px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.desktop-tabs{display:flex;gap:2px}
+.tab{font-size:12px;padding:7px 16px;border-radius:var(--r);background:transparent;border:none;color:var(--muted);cursor:pointer;font-family:'Inter',sans-serif;transition:all 0.15s;font-weight:500;white-space:nowrap;-webkit-tap-highlight-color:transparent}
+.tab:hover{color:var(--text)}.tab.active{background:var(--s3);color:var(--text)}
+.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:rgba(12,12,11,0.97);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--border);z-index:200}
+.bottom-nav-inner{display:grid;grid-template-columns:1fr 1fr 1fr;height:var(--bottomnav-h)}
+.bnav-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:transparent;border:none;color:var(--muted);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:color 0.15s;padding-bottom:var(--safe-bottom)}
+.bnav-btn.active{color:var(--accent)}
+.bnav-label{font-size:10px;font-weight:500}
+.app-body{padding-top:var(--topbar-h);min-height:100vh}
+.panel{display:none}.panel.active{display:block}
+.page-wrap{padding:24px 20px;max-width:900px;margin:0 auto}
+.panel-title{font-family:'Syne',sans-serif;font-size:22px;font-weight:700;margin-bottom:6px}
+.panel-sub{font-size:13px;color:var(--muted);margin-bottom:22px;line-height:1.5}
+.clients-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.client-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r2);padding:18px;cursor:pointer;transition:all 0.15s;-webkit-tap-highlight-color:transparent}
+.client-card:hover,.client-card:active{border-color:var(--border2);background:var(--s2)}
+.client-card.selected{border-color:var(--accent-border);background:var(--accent-dim)}
+.client-name{font-family:'Syne',sans-serif;font-size:15px;font-weight:600;margin-bottom:4px}
+.client-meta{font-size:12px;color:var(--muted);font-family:'DM Mono',monospace}
+.client-card-actions{margin-top:12px;display:flex;gap:6px}
+.new-client-card{background:transparent;border:1px dashed var(--border2);border-radius:var(--r2);padding:18px;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13px;-webkit-tap-highlight-color:transparent;min-height:80px;margin-top:0}
+.new-client-card:hover,.new-client-card:active{border-color:var(--accent-border);color:var(--accent)}
+.plus{width:28px;height:28px;border-radius:50%;border:1.5px solid currentColor;display:flex;align-items:center;justify-content:center;font-size:18px;line-height:1;flex-shrink:0}
+.form-section{background:var(--s1);border:1px solid var(--border);border-radius:var(--r2);padding:20px;margin-bottom:14px}
+.form-section-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:600;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.form-section-sub{font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.5}
+.field{margin-bottom:14px}.field:last-child{margin-bottom:0}
+.field label{display:block;font-size:11px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px}
+.field input,.field textarea,.field select{width:100%;font-size:16px;padding:11px 13px;border:1px solid var(--border);border-radius:var(--r);background:var(--s2);color:var(--text);font-family:'Inter',sans-serif;line-height:1.5;transition:border-color 0.15s;resize:vertical;-webkit-appearance:none;appearance:none}
+.field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--accent-border)}
+.field textarea{min-height:84px}.field textarea.tall{min-height:120px}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.check-group{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.check-opt{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer;padding:9px 13px;border:1px solid var(--border);border-radius:20px;transition:all 0.15s;-webkit-tap-highlight-color:transparent;min-height:42px}
+.check-opt:hover,.check-opt:active{border-color:var(--border2);color:var(--text)}
+.check-opt input{display:none}
+.check-opt.checked{border-color:var(--accent-border);color:var(--accent);background:var(--accent-dim)}
+.form-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px;padding-bottom:80px;align-items:center}
+.btn{font-size:14px;padding:11px 20px;border-radius:var(--r);border:1px solid var(--border2);background:transparent;color:var(--text);cursor:pointer;font-family:'Inter',sans-serif;font-weight:500;transition:all 0.15s;min-height:44px;-webkit-tap-highlight-color:transparent}
+.btn:hover,.btn:active{background:var(--s2)}
+.btn-primary{background:var(--accent);color:#0c0c0b;border-color:var(--accent);font-weight:600}
+.btn-primary:hover,.btn-primary:active{opacity:0.88}
+.btn-danger{color:var(--red);border-color:rgba(192,80,80,0.25)}
+.btn-danger:hover,.btn-danger:active{background:rgba(192,80,80,0.08)}
+.gen-layout{display:block}
+.gen-sidebar{background:var(--s1);border-bottom:1px solid var(--border);padding:20px}
+.gen-controls{display:grid;grid-template-columns:1fr 1fr;gap:16px 20px}
+.gen-ctrl-full{grid-column:1/-1}
+.gen-main{padding:22px 20px}
+.gen-btn-wrap{padding:16px 20px;border-top:1px solid var(--border);background:var(--s1);position:sticky;bottom:0;z-index:10}
+.gen-btn{width:100%;padding:14px;background:var(--accent);color:#0c0c0b;border:none;border-radius:var(--r);font-family:'Syne',sans-serif;font-size:14px;font-weight:700;letter-spacing:0.03em;cursor:pointer;transition:opacity 0.15s,transform 0.1s;-webkit-tap-highlight-color:transparent;min-height:50px}
+.gen-btn:hover{opacity:0.88}.gen-btn:active{transform:scale(0.98)}.gen-btn:disabled{opacity:0.35;cursor:not-allowed}
+.no-client-warn{background:rgba(201,153,58,0.08);border:1px solid var(--accent-border);border-radius:var(--r);padding:12px;font-size:13px;color:var(--accent);margin-bottom:16px;line-height:1.5}
+.field-label{font-size:10px;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:8px;display:block}
+.badge-grid{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:4px}
+.badge{font-size:12px;padding:8px 12px;border:1px solid var(--border);border-radius:20px;background:transparent;color:var(--muted);cursor:pointer;transition:all 0.15s;font-family:'Inter',sans-serif;line-height:1;-webkit-tap-highlight-color:transparent;min-height:36px;display:flex;align-items:center}
+.badge:hover,.badge:active{border-color:var(--border2);color:var(--text)}
+.badge.active{background:var(--accent-dim);border-color:var(--accent-border);color:var(--accent)}
+.gen-sidebar select{width:100%;font-size:16px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r);background:var(--s2);color:var(--text);font-family:'Inter',sans-serif;-webkit-appearance:none;appearance:none}
+.gen-sidebar select:focus{outline:none;border-color:var(--accent-border)}
+.gen-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;margin-bottom:4px}
+.gen-sub{font-size:13px;color:var(--muted);margin-bottom:18px}
+.empty-state{border:1px dashed var(--border);border-radius:var(--r2);padding:48px 20px;text-align:center}
+.empty-icon{width:44px;height:44px;background:var(--s2);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px}
+.empty-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:600;margin-bottom:6px}
+.empty-desc{font-size:13px;color:var(--muted);max-width:300px;margin:0 auto;line-height:1.6}
+.loading-state{display:none;padding:40px 0;text-align:center}
+.loading-text{font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);margin-bottom:14px}
+.loading-bar-wrap{background:var(--s2);border-radius:2px;height:2px;width:100%;max-width:280px;overflow:hidden;margin:0 auto}
+.loading-bar{height:100%;background:var(--accent);border-radius:2px;animation:lpulse 1.8s ease-in-out infinite;width:40%}
+@keyframes lpulse{0%{transform:translateX(-150%)}100%{transform:translateX(400%)}}
+.output-section{display:none}
+.output-meta{display:flex;align-items:center;gap:7px;margin-bottom:16px;flex-wrap:wrap}
+.out-tag{font-size:11px;font-family:'DM Mono',monospace;padding:3px 8px;border-radius:4px;background:var(--s2);color:var(--muted);border:1px solid var(--border)}
+.winner-box{background:var(--s1);border:1px solid var(--accent-border);border-radius:var(--r2);padding:16px;margin-bottom:14px;display:flex;gap:12px}
+.winner-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);margin-bottom:5px}
+.winner-text{font-size:13px;color:rgba(237,233,224,0.75);line-height:1.6}
+.concept-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r2);margin-bottom:14px;overflow:hidden;transition:border-color 0.15s}
+.concept-card:hover{border-color:var(--border2)}
+.concept-header{padding:16px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:12px;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;min-height:60px}
+.concept-num{font-family:'DM Mono',monospace;font-size:10px;color:var(--accent);margin-bottom:3px}
+.concept-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:600;color:var(--text);line-height:1.3}
+.concept-toggle{color:var(--muted);font-size:16px;flex-shrink:0;transition:transform 0.2s;margin-top:2px}
+.concept-toggle.open{transform:rotate(180deg)}
+.concept-body{display:none;padding:16px}.concept-body.open{display:block}
+.csec{margin-bottom:16px}.csec:last-child{margin-bottom:0}
+.csec-label{font-size:10px;font-family:'DM Mono',monospace;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
+.hook-text{font-family:'Syne',sans-serif;font-size:17px;font-weight:600;color:var(--accent);line-height:1.35;padding:12px 14px;background:var(--accent-dim);border-left:3px solid var(--accent);border-radius:0 var(--r) var(--r) 0}
+.script-text{font-size:14px;color:var(--text);line-height:1.9;white-space:pre-wrap;font-family:'Inter',sans-serif}
+.pause-note{color:var(--muted);font-style:italic;font-size:12px;font-family:'DM Mono',monospace}
+.insight-box{background:var(--green-dim);border:1px solid rgba(61,153,96,0.18);border-radius:var(--r);padding:11px 13px;font-size:13px;color:rgba(237,233,224,0.8);line-height:1.6}
+.director-box{background:var(--s2);border-radius:var(--r);padding:11px 13px;font-size:13px;color:var(--muted);line-height:1.6;font-style:italic}
+.copy-row{display:flex;gap:8px;margin-top:10px}
+.copy-btn{font-size:12px;font-family:'DM Mono',monospace;padding:9px 13px;border:1px solid var(--border);border-radius:var(--r);background:transparent;color:var(--muted);cursor:pointer;transition:all 0.15s;min-height:40px;-webkit-tap-highlight-color:transparent}
+.copy-btn:hover,.copy-btn:active{border-color:var(--border2);color:var(--text)}
+.copy-btn.copied{border-color:var(--accent-border);color:var(--accent)}
+.dl-row{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;border-top:1px solid var(--border);padding-top:14px}
+.dl-group{display:flex;flex-direction:column;gap:5px;flex:1;min-width:130px}
+.dl-label{font-size:9px;font-family:'DM Mono',monospace;letter-spacing:0.08em;text-transform:uppercase;color:var(--dim)}
+.dl-btns{display:flex;gap:6px}
+.dl-btn{font-size:12px;font-family:'DM Mono',monospace;padding:9px 12px;border:1px solid var(--border);border-radius:var(--r);background:transparent;color:var(--muted);cursor:pointer;transition:all 0.15s;min-height:40px;flex:1;text-align:center;-webkit-tap-highlight-color:transparent}
+.dl-btn:hover,.dl-btn:active{border-color:var(--border2);color:var(--text)}
+.dl-btn.client{border-color:var(--accent-border);color:var(--accent)}
+.dl-btn.client:hover,.dl-btn.client:active{background:var(--accent-dim)}
+.dl-btn.internal{border-color:rgba(61,153,96,0.3);color:#3d9960}
+.dl-btn.internal:hover,.dl-btn.internal:active{background:var(--green-dim)}
+.error-box{display:none;background:rgba(192,80,80,0.08);border:1px solid rgba(192,80,80,0.22);border-radius:var(--r);padding:12px;font-size:13px;color:#e07070;margin-bottom:16px}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+@media(min-width:768px){
+  .bottom-nav{display:none!important}
+  .desktop-tabs{display:flex}
+  .app-body{padding-bottom:0}
+  .page-wrap{padding:32px 40px}
+  .field input,.field textarea,.field select{font-size:13px;padding:9px 12px}
+  .gen-sidebar select{font-size:13px;padding:9px 12px}
+  .badge{font-size:12px;padding:7px 12px;min-height:32px}
+  .check-opt{font-size:12px;padding:7px 11px;min-height:36px}
+  .gen-layout{display:grid;grid-template-columns:300px 1fr;height:calc(100vh - var(--topbar-h));overflow:hidden}
+  .gen-sidebar{overflow-y:auto;border-bottom:none;border-right:1px solid var(--border);padding:24px;display:flex;flex-direction:column}
+  .gen-controls{display:block}
+  .gen-ctrl-full{grid-column:auto}
+  .gen-main{overflow-y:auto;padding:32px 40px}
+  .gen-btn-wrap{position:static;border-top:none;background:transparent;padding:20px 0 0;margin-top:auto}
+  .form-actions{padding-bottom:40px}
+  .field-row{grid-template-columns:1fr 1fr}
+}
+@media(max-width:767px){
+  .desktop-tabs{display:none}
+  .bottom-nav{display:block}
+  .app-body{padding-bottom:calc(var(--bottomnav-h) + var(--safe-bottom) + 8px)}
+  .field-row{grid-template-columns:1fr}
+  .gen-controls{grid-template-columns:1fr}
+  .clients-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">
+    <div class="logomark"><svg viewBox="0 0 13 13" fill="none"><path d="M2 11L6.5 2L11 11" stroke="#0c0c0b" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M3.8 7.8H9.2" stroke="#0c0c0b" stroke-width="1.7" stroke-linecap="round"/></svg></div>
+    Forge <span class="logo-sub">VSL Engine</span>
+  </div>
+  <div class="desktop-tabs">
+    <button class="tab active" onclick="showPanel('clients')">Clients</button>
+    <button class="tab" onclick="showPanel('form')">Profile</button>
+    <button class="tab" onclick="showPanel('generate')">Generate</button>
+  </div>
+  <span id="active-client-badge" class="client-badge" style="display:none"></span>
+</div>
+
+<div class="app-body">
+
+  <!-- CLIENTS -->
+  <div class="panel active" id="panel-clients">
+    <div class="page-wrap">
+      <div class="panel-title">Client Profiles</div>
+      <div class="panel-sub">Select a client to generate scripts. Tap Edit to update their profile.</div>
+      <div class="clients-grid" id="clients-grid"></div>
+    </div>
+  </div>
+
+  <!-- FORM -->
+  <div class="panel" id="panel-form">
+    <div class="page-wrap">
+      <div class="panel-title" id="form-title">New Client Profile</div>
+      <div class="panel-sub">Every field sharpens the scripts. Partial saves are fine — autosaves as you type.</div>
+
+      <div class="form-section">
+        <div class="form-section-title"><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent)">01</span>  The Business &amp; Offer</div>
+        <div class="form-section-sub">What’s being sold, at what price, and how the sale closes.</div>
+        <div class="field-row">
+          <div class="field"><label>Business Name</label><input type="text" id="f-bizname" placeholder="e.g. Leavitt Group" autocomplete="organization"></div>
+          <div class="field"><label>Point of Contact</label><input type="text" id="f-contact" placeholder="e.g. Joe Ellis" autocomplete="name"></div>
+        </div>
+        <div class="field"><label>Core Offer</label><textarea id="f-offer" placeholder="Specific transformation, deliverable, and timeframe. e.g. We help home service businesses generate 30+ qualified leads/month in 90 days or we work for free."></textarea></div>
+        <div class="field-row">
+          <div class="field"><label>Price Point</label><input type="text" id="f-price" placeholder="e.g. $3,500/mo retainer"></div>
+          <div class="field"><label>Offer Age</label><input type="text" id="f-offer-age" placeholder="e.g. 18 months"></div>
+        </div>
+        <div class="field"><label>How the Sale Closes</label>
+          <div class="check-group" id="close-type">
+            <label class="check-opt"><input type="checkbox" value="Phone / video sales call"> Phone / video sales call</label>
+            <label class="check-opt"><input type="checkbox" value="Direct checkout / cart"> Direct checkout / cart</label>
+            <label class="check-opt"><input type="checkbox" value="Webinar or live event"> Webinar / live event</label>
+            <label class="check-opt"><input type="checkbox" value="Application funnel"> Application funnel</label>
+            <label class="check-opt"><input type="checkbox" value="DM / organic outreach"> DM / organic outreach</label>
+          </div>
+        </div>
+        <div class="field"><label>Markets / Geos</label><input type="text" id="f-geo" placeholder="e.g. US only — Texas, Florida, Arizona primary"></div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title"><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent)">02</span>  The Customer</div>
+        <div class="form-section-sub">Bad customer data = bad scripts. Verbatim words from real customers outperform anything we invent.</div>
+        <div class="field"><label>Ideal Customer</label><textarea id="f-icp" placeholder="Demographics + psychographics. Job title, business type, revenue stage, mindset, worldview."></textarea></div>
+        <div class="field"><label>Their Life Before Finding You</label><textarea id="f-before" placeholder="Pain, frustration, sleepless nights, embarrassing situations. Be visceral — specifics beat generalities."></textarea></div>
+        <div class="field"><label>What Changes After Working With You</label><textarea id="f-after" placeholder="Concrete outcomes. Numbers and timeframes where possible."></textarea></div>
+        <div class="field"><label>Main Objections Before Buying</label><textarea id="f-objections" placeholder="e.g. I’ve tried agencies before and got burned. / I can’t afford to waste money right now."></textarea></div>
+        <div class="field"><label>What Makes Them Skeptical</label><textarea id="f-skepticism" placeholder="e.g. They’ve been sold vague promises. They don’t believe agencies understand their trade."></textarea></div>
+        <div class="field"><label>Exact Words &amp; Phrases Customers Use</label><textarea class="tall" id="f-voice" placeholder="Copy-paste from reviews, DMs, testimonials, sales calls. Raw language — do not paraphrase."></textarea></div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title"><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent)">03</span>  Proof &amp; Social Validation</div>
+        <div class="form-section-sub">Specific results stop the scroll. Vague claims get skipped.</div>
+        <div class="field"><label>Best Client Result</label><textarea id="f-proof1" placeholder="Exact numbers. Timeframe. Before vs. after. Name (or initials if private)."></textarea></div>
+        <div class="field"><label>2–3 Additional Strong Results</label><textarea class="tall" id="f-proof2" placeholder="List with specifics — numbers, timeframes, industries."></textarea></div>
+        <div class="field"><label>Total Clients Served</label><input type="text" id="f-clients-total" placeholder="e.g. 47 clients in the past 2 years"></div>
+        <div class="field"><label>Press, Awards, Credibility Markers</label><textarea id="f-credibility" placeholder="e.g. Forbes 30 Under 30, featured in Contractor Magazine, podcast appearances..."></textarea></div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title"><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent)">04</span>  Competitive &amp; Market Context</div>
+        <div class="form-section-sub">We build ads that stand out — not ads that blend in.</div>
+        <div class="field"><label>Top 3 Competitors</label><textarea id="f-competitors" placeholder="Names and what they say in their ads."></textarea></div>
+        <div class="field"><label>Main Differentiator</label><textarea id="f-differentiator" placeholder="What do you do that competitors don’t or can’t?"></textarea></div>
+        <div class="field"><label>What They’ve Tried in Ads Before</label><textarea id="f-past-ads" placeholder="What ran? What worked? What flopped and why?"></textarea></div>
+        <div class="field"><label>Best Performing Audience Segments</label><textarea id="f-best-segments" placeholder="e.g. Homeowners 45-65 in suburbs. Lookalikes from past buyers convert 3x better..."></textarea></div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title"><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent)">05</span>  Ad Account &amp; Media Context</div>
+        <div class="form-section-sub">Creatives live inside a media context.</div>
+        <div class="field"><label>Platforms</label>
+          <div class="check-group" id="platforms">
+            <label class="check-opt"><input type="checkbox" value="Meta (Facebook / Instagram)"> Meta</label>
+            <label class="check-opt"><input type="checkbox" value="TikTok"> TikTok</label>
+            <label class="check-opt"><input type="checkbox" value="YouTube"> YouTube</label>
+            <label class="check-opt"><input type="checkbox" value="LinkedIn"> LinkedIn</label>
+            <label class="check-opt"><input type="checkbox" value="Google Display"> Google Display</label>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Monthly Ad Spend</label><input type="text" id="f-spend" placeholder="e.g. $8,500/mo"></div>
+          <div class="field"><label>Target CPL</label><input type="text" id="f-cpl" placeholder="e.g. Under $45"></div>
+        </div>
+        <div class="field"><label>Full Funnel After the Click</label><textarea id="f-funnel" placeholder="e.g. Ad → VSL landing page → Calendly → strategy call → close"></textarea></div>
+        <div class="field"><label>Success Metrics That Matter</label><textarea id="f-metrics" placeholder="The numbers you actually care about — not vanity metrics."></textarea></div>
+        <div class="field"><label>Existing Top-Performing Ads</label><textarea id="f-winning-ads" placeholder="Describe hook, format, length, what made it work."></textarea></div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title"><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent)">06</span>  Creative Direction</div>
+        <div class="form-section-sub">Guardrails and reference points for the team.</div>
+        <div class="field"><label>Brand Guidelines</label><textarea id="f-brand" placeholder="Colors, fonts, logo usage, tone of voice rules."></textarea></div>
+        <div class="field"><label>Creative Styles They Love</label><textarea id="f-inspo" placeholder="e.g. Raw, no-edit talking-head style. Similar tone to Alex Hormozi early ads."></textarea></div>
+        <div class="field"><label>Hard Limits — Never Acceptable</label><textarea id="f-limits" placeholder="e.g. No competitor names. No income claims. No stock footage."></textarea></div>
+        <div class="field"><label>Spokesperson / Talent Details</label><textarea id="f-talent" placeholder="Who is filming? Name, on-camera comfort (1-10), delivery style, prior video to reference."></textarea></div>
+        <div class="field"><label>Anything Else We Need to Know</label><textarea id="f-misc" placeholder="Seasonal considerations, legal disclaimers, team contacts, etc."></textarea></div>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="saveClient()">Save Profile</button>
+        <button class="btn" onclick="showPanel('clients')">Cancel</button>
+        <span id="autosave-indicator" style="font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);opacity:0;transition:opacity 0.4s">autosaved</span>
+        <button class="btn btn-danger" id="delete-btn" onclick="deleteClient()" style="display:none;margin-left:auto">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GENERATE -->
+  <div class="panel" id="panel-generate">
+    <div class="gen-layout">
+      <aside class="gen-sidebar">
+        <div id="no-client-warn" class="no-client-warn" style="display:none">No client loaded. Go to Clients and select one first.</div>
+        <div class="gen-controls">
+          <div class="gen-ctrl-full">
+            <span class="field-label">Output type</span>
+            <div class="badge-grid" id="output-type-badges">
+              <span class="badge active" data-val="full_scripts">Full scripts</span>
+              <span class="badge" data-val="hooks_only">Hook bank</span>
+              <span class="badge" data-val="full_batch">Scripts + hooks</span>
+            </div>
+          </div>
+          <div>
+            <span class="field-label">Funnel stage</span>
+            <div class="badge-grid" id="stage-badges">
+              <span class="badge active" data-val="cold traffic — audience has never seen this brand. Must interrupt and hook within 2 seconds. No assumed awareness.">Cold</span>
+              <span class="badge" data-val="warm retargeting — watched 75%+ of a prior video or visited the site. Aware but unconverted. Deepen belief, push to action.">Warm</span>
+              <span class="badge" data-val="no-show re-engagement — booked a call but did not show. Use urgency, specificity, and proof to re-engage.">No-show</span>
+            </div>
+          </div>
+          <div>
+            <span class="field-label">Primary goal</span>
+            <div class="badge-grid" id="goal-badges">
+              <span class="badge active" data-val="drive form submissions / lead ad completions">Lead form</span>
+              <span class="badge" data-val="drive call bookings on the VSL or landing page">Book a call</span>
+              <span class="badge" data-val="build authority and trust — proof and mechanism education, not a direct CTA">Authority</span>
+              <span class="badge" data-val="pre-qualify — attract only serious high-intent buyers, actively repel bad-fit leads">Pre-qualify</span>
+            </div>
+          </div>
+          <div class="gen-ctrl-full">
+            <span class="field-label">Script angle</span>
+            <select id="angle-select">
+              <option value="problem_agitation">Problem agitation → mechanism</option>
+              <option value="proof_led">Proof-led credibility</option>
+              <option value="contrarian">Contrarian reframe</option>
+              <option value="mechanism_reveal">Mechanism reveal</option>
+              <option value="founder_story">Founder / behind the scenes</option>
+              <option value="diagnostic">Diagnostic / qualifier</option>
+              <option value="math_leverage">Math / leverage (CPL angle)</option>
+            </select>
+          </div>
+          <div>
+            <span class="field-label">Video length</span>
+            <div class="badge-grid" id="length-badges">
+              <span class="badge active" data-val="15-30 seconds — hook, one key point, CTA only. No filler.">15–30s</span>
+              <span class="badge" data-val="45-60 seconds — hook, mechanism beat, proof beat, CTA.">45–60s</span>
+              <span class="badge" data-val="90-120 seconds — hook, problem expansion, full mechanism, proof stack, CTA.">90–120s</span>
+            </div>
+          </div>
+          <div>
+            <span class="field-label">Quantity</span>
+            <div class="badge-grid" id="qty-badges">
+              <span class="badge" data-val="1">1</span>
+              <span class="badge active" data-val="3">3</span>
+              <span class="badge" data-val="5">5</span>
+              <span class="badge" data-val="10">10</span>
+            </div>
+          </div>
+        </div>
+        <div class="gen-btn-wrap">
+          <button class="gen-btn" id="gen-btn" onclick="generate()">Generate Scripts ↗</button>
+        </div>
+      </aside>
+      <div class="gen-main">
+        <div class="gen-title">Script Generator</div>
+        <div class="gen-sub">Load a client, configure your brief, hit Generate.</div>
+        <div class="error-box" id="error-box"></div>
+        <div class="loading-state" id="loading-state">
+          <div class="loading-text" id="loading-text">Building your scripts...</div>
+          <div class="loading-bar-wrap"><div class="loading-bar"></div></div>
+        </div>
+        <div class="empty-state" id="empty-state">
+          <div class="empty-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="14" height="14" rx="3" stroke="#555" stroke-width="1.2"/><path d="M7 10h6M10 7v6" stroke="#555" stroke-width="1.2" stroke-linecap="round"/></svg></div>
+          <div class="empty-title">No scripts yet</div>
+          <div class="empty-desc">Select a client and configure your brief to get started.</div>
+        </div>
+        <div class="output-section" id="output-section">
+          <div class="output-meta" id="output-meta"></div>
+          <div id="winner-area"></div>
+          <div id="concepts-area"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- MOBILE BOTTOM NAV -->
+<nav class="bottom-nav" aria-label="Main navigation">
+  <div class="bottom-nav-inner">
+    <button class="bnav-btn active" id="bnav-clients" onclick="showPanel('clients')">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="8" cy="8" r="3.5" stroke="currentColor" stroke-width="1.4"/><path d="M2 19c0-3.314 2.686-6 6-6h0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="15" cy="8" r="3.5" stroke="currentColor" stroke-width="1.4"/><path d="M11 19c0-3.314 2.686-6 6-6h0c3.314 0 6 2.686 6 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      <span class="bnav-label">Clients</span>
+    </button>
+    <button class="bnav-btn" id="bnav-form" onclick="showPanel('form')">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="3" y="3" width="16" height="16" rx="2.5" stroke="currentColor" stroke-width="1.4"/><path d="M7 8h8M7 11h8M7 14h5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      <span class="bnav-label">Profile</span>
+    </button>
+    <button class="bnav-btn" id="bnav-generate" onclick="showPanel('generate')">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M4 11h14M13 5l6 6-6 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span class="bnav-label">Generate</span>
+    </button>
+  </div>
+</nav>
+
+<script>
+
+const WORKER_URL = 'https://forge-api-proxy.kyle-d56.workers.dev';
+let clients = JSON.parse(localStorage.getItem('forge_clients')||'[]');
+let activeClientId = null;
+let editingClientId = null;
+const loadMsgs = ['Building your scripts...','Writing hooks...','Deploying proof points...','Stress-testing CTAs...','Almost there...'];
+
+function showPanel(name) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.bnav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+  const idx = {clients:0,form:1,generate:2}[name];
+  const tabs = document.querySelectorAll('.tab');
+  if(tabs[idx]) tabs[idx].classList.add('active');
+  const bnavIds = ['bnav-clients','bnav-form','bnav-generate'];
+  const bEl = document.getElementById(bnavIds[idx]);
+  if(bEl) bEl.classList.add('active');
+  if(name==='generate') document.getElementById('no-client-warn').style.display = activeClientId ? 'none' : 'block';
+  window.scrollTo(0,0);
+}
+
+function renderClients() {
+  const grid = document.getElementById('clients-grid');
+  grid.innerHTML = '';
+  clients.forEach(c => {
+    const card = document.createElement('div');
+    card.className = 'client-card'+(c.id===activeClientId?' selected':'');
+    card.innerHTML = `<div class="client-name">${esc(c.bizname||'Unnamed Client')}</div><div class="client-meta">${esc(c.contact||'')}${c.spend?' · '+esc(c.spend):''}</div><div style="margin-top:10px;display:flex;gap:6px"><button class="btn" style="font-size:11px;padding:4px 10px" onclick="event.stopPropagation();editClient('${c.id}')">Edit</button><button class="btn" style="font-size:11px;padding:4px 10px" onclick="event.stopPropagation();loadAndGenerate('${c.id}')">Generate →</button></div>`;
+    card.onclick = () => { activeClientId=c.id; updateBadge(); renderClients(); };
+    grid.appendChild(card);
+  });
+  const n = document.createElement('div');
+  n.className = 'new-client-card';
+  n.innerHTML = '<div class="plus">+</div><span>New client profile</span>';
+  n.onclick = newClient;
+  grid.appendChild(n);
+}
+
+function newClient() { editingClientId=null; clearForm(); document.getElementById('form-title').textContent='New Client Profile'; document.getElementById('delete-btn').style.display='none'; showPanel('form'); }
+function editClient(id) { const c=clients.find(x=>x.id===id); if(!c) return; editingClientId=id; fillForm(c); document.getElementById('form-title').textContent='Edit — '+(c.bizname||'Client'); document.getElementById('delete-btn').style.display='inline-flex'; showPanel('form'); }
+function loadAndGenerate(id) { activeClientId=id; updateBadge(); renderClients(); showPanel('generate'); }
+
+function saveClient() {
+  const c = {
+    id: editingClientId||('c'+Date.now()),
+    bizname:v('f-bizname'),contact:v('f-contact'),offer:v('f-offer'),price:v('f-price'),'offer-age':v('f-offer-age'),
+    'close-type':getChecked('close-type'),geo:v('f-geo'),
+    icp:v('f-icp'),before:v('f-before'),after:v('f-after'),objections:v('f-objections'),skepticism:v('f-skepticism'),voice:v('f-voice'),
+    proof1:v('f-proof1'),proof2:v('f-proof2'),'clients-total':v('f-clients-total'),credibility:v('f-credibility'),
+    competitors:v('f-competitors'),differentiator:v('f-differentiator'),'past-ads':v('f-past-ads'),'best-segments':v('f-best-segments'),
+    platforms:getChecked('platforms'),spend:v('f-spend'),cpl:v('f-cpl'),funnel:v('f-funnel'),metrics:v('f-metrics'),'winning-ads':v('f-winning-ads'),
+    brand:v('f-brand'),inspo:v('f-inspo'),limits:v('f-limits'),talent:v('f-talent'),misc:v('f-misc')
+  };
+  if(editingClientId){const i=clients.findIndex(x=>x.id===editingClientId);if(i>-1)clients[i]=c;}
+  else{clients.push(c);activeClientId=c.id;}
+  persist(); updateBadge(); renderClients(); showPanel('clients');
+}
+
+function deleteClient() {
+  if(!editingClientId||!confirm('Delete this client profile? This cannot be undone.')) return;
+  clients=clients.filter(x=>x.id!==editingClientId);
+  if(activeClientId===editingClientId) activeClientId=null;
+  persist(); updateBadge(); renderClients(); showPanel('clients');
+}
+
+function persist() { localStorage.setItem('forge_clients',JSON.stringify(clients)); }
+function updateBadge() { const badge=document.getElementById('active-client-badge'); const c=clients.find(x=>x.id===activeClientId); if(c){badge.textContent=c.bizname||'Client';badge.style.display='inline-block';}else badge.style.display='none'; }
+function v(id) { return(document.getElementById(id)||{}).value||''; }
+function getChecked(gId) { return Array.from(document.querySelectorAll('#'+gId+' .check-opt.checked input')).map(i=>i.value); }
+function clearForm() { document.querySelectorAll('#panel-form input,#panel-form textarea').forEach(el=>el.value=''); document.querySelectorAll('.check-opt').forEach(el=>el.classList.remove('checked')); }
+function fillForm(c) {
+  const s=(id,val)=>{const el=document.getElementById(id);if(el)el.value=val||'';};
+  ['bizname','contact','offer','price','offer-age','geo','icp','before','after','objections','skepticism','voice','proof1','proof2','clients-total','credibility','competitors','differentiator','past-ads','best-segments','spend','cpl','funnel','metrics','winning-ads','brand','inspo','limits','talent','misc'].forEach(k=>s('f-'+k,c[k]));
+  ['close-type','platforms'].forEach(gId=>{const vals=c[gId]||[];document.querySelectorAll('#'+gId+' .check-opt').forEach(opt=>{const inp=opt.querySelector('input');opt.classList.toggle('checked',vals.includes(inp.value));});});
+}
+
+document.querySelectorAll('.check-opt').forEach(opt=>opt.addEventListener('click',()=>opt.classList.toggle('checked')));
+['output-type-badges','stage-badges','goal-badges','length-badges','qty-badges'].forEach(gId=>{
+  document.querySelectorAll('#'+gId+' .badge').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#'+gId+' .badge').forEach(x=>x.classList.remove('active'));b.classList.add('active');}));
+});
+function getActive(gId){const el=document.querySelector('#'+gId+' .badge.active');return el?el.dataset.val:'';}
+
+function buildPrompt(client,outputType,stage,goal,angle,length,qty){
+  const angles={
+    problem_agitation:'Problem agitation to mechanism: Open with a visceral scroll-stopping statement about their core pain. Force self-identification. Bridge to the mechanism as the only logical solution.',
+    proof_led:'Proof-led credibility: Open with the single most powerful client result. Build credibility in the first 5 seconds. Connect that result to the process so the viewer understands why it worked.',
+    contrarian:'Contrarian reframe: Challenge a widely held belief the audience has. Create a "I never thought about it that way" moment. Position the client as the smarter alternative.',
+    mechanism_reveal:'Mechanism reveal: Demonstrate what makes this offer uniquely effective. Educate the viewer on the specific system. Make them feel like they are learning something valuable.',
+    founder_story:'Founder / behind the scenes: Spokesperson shares a personal insight about what actually works. Builds parasocial trust. Positions them as a real expert not a polished actor.',
+    diagnostic:'Diagnostic / qualifier: Call out a specific symptom the ideal customer is experiencing right now. Make them feel seen and understood. Position the offer as the diagnosis and solution.',
+    math_leverage:'Math / leverage: Use a specific number or math equation in the first 3 seconds. Show how one metric if improved changes everything else downstream. Make the ROI case visceral and simple.'
+  };
+  const c=k=>(client[k]||'').trim();
+  const proofBlock=[c('proof1'),c('proof2')].filter(Boolean).join('\n');
+  return `You are an expert direct-response video ad creative strategist. Internalize this proven framework from high-converting Meta video ads.
+
+FORGE FRAMEWORK — VOICE & STYLE:
+- Opens mid-thought or with a direct callout — never "hey guys" or slow intros
+- Short declarative sentences. Fragments are fine. Rhythm matters.
+- Contractions always. Casual but authoritative. The "craziest part" reframe builds anticipation before proof.
+- Double CTA structure: early CTA for people ready to act, then proof stack, then final CTA for people who needed convincing
+- Write [pause] where the spokesperson should let something land
+- Proof deployed at peak skepticism — after the mechanism, never before
+- NEVER fabricate proof — only use what is explicitly provided below
+
+FIVE-PILLAR STRUCTURE (mandatory order):
+1. HOOK (0-2 seconds): Scroll-stop. Forces self-identification. Creates open loop. First words ARE the hook.
+2. SUPER HOOK (2-5 seconds): Deepen with a specific credible claim that makes it impossible to look away.
+3. VALUE / MECHANISM: The insight or system that makes the viewer believe this is different from everything they've tried.
+4. SOCIAL PROOF: Specific numbers only. Deployed after mechanism at peak skepticism.
+5. CTA: Single action. Low-friction. Early tease then full CTA after proof.
+
+HOOK TYPES (rotate — do not repeat same type across scripts):
+- Pain/Diagnostic: "If you're doing X and Y isn't happening — it's not Z. It's W."
+- Contrarian: Challenge a belief they hold. "Stop doing X."
+- Number-led: Dollar figure or metric in the first frame before the face appears
+- Open loop: "There's a reason your best ad eventually stops working — and it's not fatigue."
+- Direct callout: "If you're a [specific ICP] spending [X] and not getting [Y]..."
+- Mid-sentence cold open: Start already talking, mid-thought
+- Mechanism-led: "We already know which ad will win."
+
+CLIENT PROFILE:
+Business: ${c('bizname')} | Contact: ${c('contact')}
+Offer: ${c('offer')}
+Price: ${c('price')} | Close method: ${(client['close-type']||[]).join(', ')}
+Geo: ${c('geo')} | Offer age: ${c('offer-age')}
+Platforms: ${(client.platforms||[]).join(', ')} | Monthly spend: ${c('spend')} | Target CPL: ${c('cpl')}
+
+IDEAL CUSTOMER: ${c('icp')}
+THEIR LIFE BEFORE: ${c('before')}
+WHAT CHANGES AFTER: ${c('after')}
+MAIN OBJECTIONS: ${c('objections')}
+WHY THEY'RE SKEPTICAL: ${c('skepticism')}
+EXACT CUSTOMER LANGUAGE (use this in scripts): ${c('voice')}
+
+VERIFIED PROOF POINTS (only use these — never invent results):
+${proofBlock||'No proof points provided — focus on mechanism and authority instead.'}
+Total clients served: ${c('clients-total')}
+Credibility markers: ${c('credibility')}
+
+FUNNEL AFTER CLICK: ${c('funnel')}
+SUCCESS METRICS: ${c('metrics')}
+COMPETITORS: ${c('competitors')}
+DIFFERENTIATOR: ${c('differentiator')}
+PAST ADS: ${c('past-ads')}
+BEST SEGMENTS: ${c('best-segments')}
+TALENT / SPOKESPERSON: ${c('talent')}
+BRAND GUIDELINES: ${c('brand')}
+CREATIVE INSPIRATION: ${c('inspo')}
+HARD LIMITS — NEVER VIOLATE: ${c('limits')}
+OTHER NOTES: ${c('misc')}
+WINNING AD REFERENCE: ${c('winning-ads')}
+
+BRIEF:
+Output: ${outputType} | Stage: ${stage} | Goal: ${goal}
+Angle: ${angles[angle]||angle} | Length: ${length} | Quantity: ${qty}
+
+${outputType==='hooks_only'
+?`Generate exactly ${qty} hooks. Each is a standalone scroll-stop opening (1-3 lines max). Cover different hook types across all ${qty}. For each include: hook text, type label, one sentence on why it stops the scroll for this specific audience.
+Respond in valid JSON only: {"hooks":[{"hook":"...","type":"...","why":"..."}],"winner_pick":"..."}`
+:outputType==='full_batch'
+?`Generate ${qty} full scripts AND a separate hook bank of 8 hooks covering all hook types.
+Scripts: title, hook (first 2 seconds), full script (word-for-word with [pause]/[beat] notes), directors_note, why_it_converts.
+Hooks: hook text, type, why it stops the scroll.
+Respond in valid JSON only: {"concepts":[{"title":"...","hook":"...","script":"...","directors_note":"...","why_it_converts":"..."}],"hook_bank":[{"hook":"...","type":"...","why":"..."}],"winner_pick":"..."}`
+:`Generate exactly ${qty} complete video scripts. Use different hook types across scripts — do not repeat the same opening structure. Use the client's exact customer language where it fits naturally. Only include proof points explicitly provided above — never fabricate results. Respect all hard limits above.
+For each: punchy internal title, exact hook (first 2 seconds only), full word-for-word script with [pause] and [beat] notes, director's note (1-2 sentences on delivery/tone/visual), why it converts (2-3 sentences on psychological mechanism).
+Respond in valid JSON only, no markdown, no backticks, no preamble: {"concepts":[{"title":"...","hook":"...","script":"...","directors_note":"...","why_it_converts":"..."}],"winner_pick":"..."}`}`;
+}
+
+async function generate() {
+  const client=clients.find(x=>x.id===activeClientId);
+  if(!client){showError('No client loaded. Go to Clients and select one first.');return;}
+  const outputType=getActive('output-type-badges'),stage=getActive('stage-badges'),goal=getActive('goal-badges');
+  const angle=document.getElementById('angle-select').value,length=getActive('length-badges'),qty=getActive('qty-badges');
+  document.getElementById('empty-state').style.display='none';
+  document.getElementById('output-section').style.display='none';
+  document.getElementById('error-box').style.display='none';
+  const loadEl=document.getElementById('loading-state');loadEl.style.display='block';
+  document.getElementById('gen-btn').disabled=true;
+  let mi=0;const lint=setInterval(()=>{document.getElementById('loading-text').textContent=loadMsgs[mi++%loadMsgs.length];},1800);
+  try {
+    const res=await fetch(WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:buildPrompt(client,outputType,stage,goal,angle,length,qty)})});
+    if(!res.ok) throw new Error('Worker returned '+res.status);
+    const data=await res.json();
+    renderOutput(data,outputType,client,stage,goal,length);
+  } catch(err){showError('Generation failed: '+err.message);}
+  finally{clearInterval(lint);loadEl.style.display='none';document.getElementById('gen-btn').disabled=false;}
+}
+
+function renderOutput(data,outputType,client,stage,goal,length){ lastOutputData=data; lastOutputClient=client;
+  document.getElementById('output-meta').innerHTML=[client.bizname,stage.split('—')[0].trim(),goal.split(' ').slice(0,3).join(' '),length.split('—')[0].split('-')[0].trim()+'s'].map(t=>`<span class="out-tag">${esc(t)}</span>`).join('');
+  document.getElementById('winner-area').innerHTML=data.winner_pick?`<div class="winner-box"><div style="font-size:18px;flex-shrink:0">★</div><div><div class="winner-label">Highest conversion potential</div><div class="winner-text">${esc(data.winner_pick)}</div></div></div>`:'';
+  const el=document.getElementById('concepts-area');el.innerHTML='';
+  if(data.concepts){data.concepts.forEach((c,i)=>{const card=document.createElement('div');card.className='concept-card';const cIdx=i;card.innerHTML=`<div class="concept-header" onclick="toggleC(this)"><div><div class="concept-num">SCRIPT ${String(i+1).padStart(2,'0')}</div><div class="concept-title">${esc(c.title)}</div></div><div class="concept-toggle ${i===0?'open':''}">⌄</div></div><div class="concept-body ${i===0?'open':''}"><div class="csec"><div class="csec-label">Hook — first 2 seconds</div><div class="hook-text">${esc(c.hook)}</div></div><div class="csec"><div class="csec-label">Full script</div><div class="script-text">${fmtScript(c.script)}</div><div class="copy-row"><button class="copy-btn" onclick="cpTxt(this,${JSON.stringify(c.script)})">Copy script</button></div></div><div class="csec"><div class="csec-label">Director's note</div><div class="director-box">${esc(c.directors_note)}</div></div><div class="csec"><div class="csec-label">Why this converts</div><div class="insight-box">${esc(c.why_it_converts)}</div></div><div class="dl-row"><div class="dl-group"><div class="dl-label">Client doc</div><div class="dl-btns"><button class="dl-btn client" onclick="dlClientDocx(${cIdx})">Word</button><button class="dl-btn client" onclick="dlClientPdf(${cIdx})">PDF</button></div></div><div class="dl-group"><div class="dl-label">Internal / talent</div><div class="dl-btns"><button class="dl-btn internal" onclick="dlInternalDocx(${cIdx})">Word</button><button class="dl-btn internal" onclick="dlInternalPdf(${cIdx})">PDF</button></div></div></div></div>`;el.appendChild(card);});}
+  if(data.hooks||data.hook_bank){const hooks=data.hooks||data.hook_bank;const hCard=document.createElement('div');hCard.className='concept-card';hCard.innerHTML=`<div class="concept-header" onclick="toggleC(this)"><div><div class="concept-num">HOOK BANK</div><div class="concept-title">${hooks.length} hooks — all types covered</div></div><div class="concept-toggle open">⌄</div></div><div class="concept-body open">${hooks.map((h,i)=>`<div class="csec" style="border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:14px"><div class="csec-label">Hook ${i+1} · ${esc(h.type||'')}</div><div class="hook-text" style="font-size:15px;margin-bottom:8px">${esc(h.hook)}</div><div style="font-size:12px;color:var(--muted);font-style:italic">${esc(h.why||'')}</div></div>`).join('')}</div>`;el.appendChild(hCard);}
+  document.getElementById('output-section').style.display='block';
+  document.getElementById('output-section').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function toggleC(h){const b=h.nextElementSibling,t=h.querySelector('.concept-toggle'),o=b.classList.toggle('open');t.classList.toggle('open',o);}
+function fmtScript(t){return esc(t).replace(/\[(pause|beat|cut|hold|breath)[^\]]*\]/gi,m=>`<span class="pause-note">${m}</span>`);}
+function cpTxt(btn,text){navigator.clipboard.writeText(text).then(()=>{btn.textContent='Copied ✓';btn.classList.add('copied');setTimeout(()=>{btn.textContent='Copy script';btn.classList.remove('copied');},2000);});}
+function showError(msg){const el=document.getElementById('error-box');el.textContent=msg;el.style.display='block';document.getElementById('empty-state').style.display='none';document.getElementById('loading-state').style.display='none';}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+
+
+// ── DOWNLOAD FUNCTIONS ──
+let lastOutputData = null;
+let lastOutputClient = null;
+
+// Store output data when rendered so download fns can access it
+const _origRenderOutput = renderOutput;
+
+function getScript(idx) {
+  return lastOutputData && lastOutputData.concepts ? lastOutputData.concepts[idx] : null;
+}
+
+// ── CLIENT-FACING DOC (script only, Forge branding) ──
+function clientDocContent(concept, clientObj) {
+  const date = new Date().toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'});
+  return {
+    title: concept.title,
+    client: clientObj.bizname || 'Client',
+    date,
+    hook: concept.hook,
+    script: concept.script
+  };
+}
+
+function dlClientDocx(idx) {
+  const concept = getScript(idx);
+  if (!concept) return;
+  const client = lastOutputClient;
+  const { Document, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle, Packer } = docx;
+  const date = new Date().toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'});
+  const scriptLines = (concept.script || '').split('\n').filter(l => l.trim());
+  const doc = new Document({
+    sections: [{
+      properties: { page: { size: { width: 12240, height: 15840 } } },
+      children: [
+        new Paragraph({ children: [new TextRun({ text: 'FORGE MARKETING', bold: true, size: 28, color: 'C9993A', font: 'Arial' })], alignment: AlignmentType.LEFT }),
+        new Paragraph({ children: [new TextRun({ text: 'Video Ad Script', size: 22, color: '888880', font: 'Arial' })], alignment: AlignmentType.LEFT, spacing: { after: 120 } }),
+        new Paragraph({ border: { bottom: { color: 'C9993A', style: BorderStyle.SINGLE, size: 6 } }, spacing: { after: 300 } }),
+        new Paragraph({ children: [new TextRun({ text: client.bizname || 'Client', bold: true, size: 32, font: 'Arial' })], spacing: { before: 200, after: 80 } }),
+        new Paragraph({ children: [new TextRun({ text: concept.title, size: 24, color: '555550', font: 'Arial' })], spacing: { after: 60 } }),
+        new Paragraph({ children: [new TextRun({ text: date, size: 18, color: '888880', font: 'Arial' })], spacing: { after: 400 } }),
+        new Paragraph({ children: [new TextRun({ text: 'HOOK — FIRST 2 SECONDS', bold: true, size: 16, color: 'C9993A', font: 'Arial' })], spacing: { after: 120 } }),
+        new Paragraph({
+          children: [new TextRun({ text: concept.hook, bold: true, size: 28, font: 'Arial', color: '1a1a18' })],
+          border: { left: { color: 'C9993A', style: BorderStyle.SINGLE, size: 12 } },
+          indent: { left: 360 },
+          spacing: { after: 400 }
+        }),
+        new Paragraph({ children: [new TextRun({ text: 'FULL SCRIPT', bold: true, size: 16, color: 'C9993A', font: 'Arial' })], spacing: { after: 160 } }),
+        ...scriptLines.map(line => new Paragraph({
+          children: [new TextRun({ text: line, size: 22, font: 'Arial', italics: /^\[/.test(line.trim()) })],
+          spacing: { after: line.trim() === '' ? 200 : 120 }
+        })),
+        new Paragraph({ spacing: { before: 600 }, border: { top: { color: 'C9993A', style: BorderStyle.SINGLE, size: 4 } } }),
+        new Paragraph({ children: [new TextRun({ text: 'Prepared by Forge Marketing  ·  forgemarketingteam.com', size: 16, color: '888880', font: 'Arial' })], alignment: AlignmentType.CENTER, spacing: { before: 120 } }),
+      ]
+    }]
+  });
+  Packer.toBlob(doc).then(blob => {
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = `${slugify(client.bizname)}-${slugify(concept.title)}-client.docx`; a.click();
+  });
+}
+
+function dlClientPdf(idx) {
+  const concept = getScript(idx);
+  if (!concept) return;
+  const client = lastOutputClient;
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'pt', format: 'letter' });
+  const W = doc.internal.pageSize.getWidth();
+  const margin = 56;
+  let y = 56;
+  // Header bar
+  doc.setFillColor(201, 153, 58);
+  doc.rect(margin, y, W - margin*2, 3, 'F');
+  y += 18;
+  doc.setFont('helvetica','bold'); doc.setFontSize(18); doc.setTextColor(201,153,58);
+  doc.text('FORGE MARKETING', margin, y); y += 18;
+  doc.setFont('helvetica','normal'); doc.setFontSize(11); doc.setTextColor(136,136,128);
+  doc.text('Video Ad Script', margin, y); y += 32;
+  doc.setFillColor(201,153,58); doc.rect(margin, y, W-margin*2, 1, 'F'); y += 24;
+  // Client name
+  doc.setFont('helvetica','bold'); doc.setFontSize(20); doc.setTextColor(20,20,18);
+  doc.text(client.bizname || 'Client', margin, y); y += 22;
+  doc.setFont('helvetica','normal'); doc.setFontSize(13); doc.setTextColor(80,80,75);
+  doc.text(concept.title, margin, y); y += 16;
+  doc.setFontSize(10); doc.setTextColor(136,136,128);
+  doc.text(new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}), margin, y); y += 36;
+  // Hook
+  doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(201,153,58);
+  doc.text('HOOK — FIRST 2 SECONDS', margin, y); y += 14;
+  doc.setFillColor(201,153,58); doc.rect(margin, y, 3, 28, 'F');
+  doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(20,20,18);
+  const hookLines = doc.splitTextToSize(concept.hook, W - margin*2 - 16);
+  doc.text(hookLines, margin+12, y+14); y += Math.max(36, hookLines.length*18) + 24;
+  // Script
+  doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(201,153,58);
+  doc.text('FULL SCRIPT', margin, y); y += 16;
+  const scriptLines = (concept.script||'').split('\n');
+  scriptLines.forEach(line => {
+    if (y > doc.internal.pageSize.getHeight() - 80) { doc.addPage(); y = 56; }
+    const isNote = /^\[/.test(line.trim());
+    doc.setFont('helvetica', isNote ? 'italic' : 'normal');
+    doc.setFontSize(isNote ? 10 : 12);
+    doc.setTextColor(isNote ? 136 : 20, isNote ? 136 : 20, isNote ? 128 : 18);
+    if (line.trim() === '') { y += 8; return; }
+    const wrapped = doc.splitTextToSize(line, W - margin*2);
+    doc.text(wrapped, margin, y); y += wrapped.length * 16 + 4;
+  });
+  // Footer
+  y = doc.internal.pageSize.getHeight() - 40;
+  doc.setFillColor(201,153,58); doc.rect(margin, y-8, W-margin*2, 1, 'F');
+  doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(136,136,128);
+  doc.text('Prepared by Forge Marketing  ·  forgemarketingteam.com', W/2, y+10, {align:'center'});
+  doc.save(`${slugify(client.bizname)}-${slugify(concept.title)}-client.pdf`);
+}
+
+// ── INTERNAL / TALENT DOC ──
+function dlInternalDocx(idx) {
+  const concept = getScript(idx);
+  if (!concept) return;
+  const client = lastOutputClient;
+  const { Document, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle, Packer, ShadingType } = docx;
+  const date = new Date().toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'});
+  const scriptLines = (concept.script || '').split('\n').filter(l => l !== undefined);
+  const doc = new Document({
+    sections: [{
+      properties: { page: { size: { width: 12240, height: 15840 } } },
+      children: [
+        new Paragraph({ children: [new TextRun({ text: 'FORGE MARKETING — INTERNAL', bold: true, size: 20, color: '3d9960', font: 'Arial' })], spacing: { after: 40 } }),
+        new Paragraph({ children: [new TextRun({ text: 'Talent Script Package', bold: true, size: 28, color: '1a1a18', font: 'Arial' })], spacing: { after: 60 } }),
+        new Paragraph({ children: [new TextRun({ text: `Client: ${client.bizname || 'Client'}  ·  ${concept.title}  ·  ${date}`, size: 18, color: '666660', font: 'Arial' })], border: { bottom: { color: '3d9960', style: BorderStyle.SINGLE, size: 4 } }, spacing: { after: 360 } }),
+        // Talent briefing
+        new Paragraph({ children: [new TextRun({ text: 'TALENT BRIEFING', bold: true, size: 16, color: '3d9960', font: 'Arial' })], spacing: { after: 100 } }),
+        new Paragraph({ children: [new TextRun({ text: `Spokesperson: ${client.talent || 'See project brief'}`, size: 20, font: 'Arial' })], spacing: { after: 80 } }),
+        new Paragraph({ children: [new TextRun({ text: `Business: ${client.bizname || ''}`, size: 20, font: 'Arial' })], spacing: { after: 80 } }),
+        new Paragraph({ children: [new TextRun({ text: `Platforms: ${(client.platforms||[]).join(', ') || 'See project brief'}`, size: 20, font: 'Arial' })], spacing: { after: 80 } }),
+        new Paragraph({ children: [new TextRun({ text: `Goal: ${client.offer ? client.offer.substring(0,120) + '...' : 'See project brief'}`, size: 20, font: 'Arial', italics: true, color: '666660' })], spacing: { after: 320 } }),
+        // Director note
+        new Paragraph({ children: [new TextRun({ text: 'DIRECTOR\'S NOTE', bold: true, size: 16, color: '3d9960', font: 'Arial' })], spacing: { after: 100 } }),
+        new Paragraph({ children: [new TextRun({ text: concept.directors_note || '', size: 20, font: 'Arial', italics: true, color: '333330' })], indent: { left: 360 }, border: { left: { color: '3d9960', style: BorderStyle.SINGLE, size: 8 } }, spacing: { after: 320 } }),
+        // Hook
+        new Paragraph({ children: [new TextRun({ text: 'HOOK — NAIL THIS IN 2 SECONDS', bold: true, size: 16, color: '3d9960', font: 'Arial' })], spacing: { after: 100 } }),
+        new Paragraph({
+          children: [new TextRun({ text: concept.hook, bold: true, size: 30, font: 'Arial', color: '1a1a18' })],
+          border: { left: { color: '3d9960', style: BorderStyle.SINGLE, size: 14 } },
+          indent: { left: 360 },
+          spacing: { after: 400 }
+        }),
+        // Full script
+        new Paragraph({ children: [new TextRun({ text: 'FULL SCRIPT', bold: true, size: 16, color: '3d9960', font: 'Arial' })], spacing: { after: 100 } }),
+        new Paragraph({ children: [new TextRun({ text: 'Read exactly as written. [pause] = 1-second beat. [beat] = half-beat. Delivery notes in brackets are for you, not to be read aloud.', size: 16, color: '888880', font: 'Arial', italics: true })], spacing: { after: 200 } }),
+        ...scriptLines.map(line => {
+          const isNote = /^\[/.test(line.trim());
+          return new Paragraph({
+            children: [new TextRun({ text: line || '', size: isNote ? 18 : 24, font: 'Arial', italics: isNote, color: isNote ? '888880' : '0a0a09', bold: !isNote && line.trim().length > 0 && line.trim().length < 60 })],
+            spacing: { after: line.trim() === '' ? 160 : 100 },
+            indent: isNote ? { left: 360 } : {}
+          });
+        }),
+        new Paragraph({ spacing: { before: 480 }, border: { top: { color: '3d9960', style: BorderStyle.SINGLE, size: 4 } } }),
+        new Paragraph({ children: [new TextRun({ text: 'INTERNAL USE ONLY — Forge Marketing', size: 16, color: '888880', font: 'Arial', bold: true })], alignment: AlignmentType.CENTER, spacing: { before: 120 } }),
+      ]
+    }]
+  });
+  Packer.toBlob(doc).then(blob => {
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = `${slugify(client.bizname)}-${slugify(concept.title)}-internal.docx`; a.click();
+  });
+}
+
+function dlInternalPdf(idx) {
+  const concept = getScript(idx);
+  if (!concept) return;
+  const client = lastOutputClient;
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'pt', format: 'letter' });
+  const W = doc.internal.pageSize.getWidth();
+  const PH = doc.internal.pageSize.getHeight();
+  const margin = 56;
+  let y = 50;
+  const checkPage = (needed) => { if (y + needed > PH - 60) { doc.addPage(); y = 50; } };
+  // Header
+  doc.setFillColor(61,153,96); doc.rect(margin,y,W-margin*2,3,'F'); y+=16;
+  doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(61,153,96);
+  doc.text('FORGE MARKETING — INTERNAL / TALENT PACKAGE', margin, y); y+=20;
+  doc.setFont('helvetica','bold'); doc.setFontSize(18); doc.setTextColor(20,20,18);
+  doc.text('Talent Script Package', margin, y); y+=18;
+  doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(100,100,96);
+  doc.text(`${client.bizname||'Client'}  ·  ${concept.title}  ·  ${new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})}`, margin, y);
+  y+=6; doc.setFillColor(61,153,96); doc.rect(margin,y,W-margin*2,1,'F'); y+=28;
+  // Briefing box
+  doc.setFillColor(240,250,244); doc.roundedRect(margin,y,W-margin*2,70,4,4,'F');
+  doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(61,153,96);
+  doc.text('TALENT BRIEFING', margin+12, y+14);
+  doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(30,30,28);
+  doc.text(`Spokesperson: ${client.talent||'See project brief'}`, margin+12, y+28);
+  doc.text(`Business: ${client.bizname||''}  ·  Platforms: ${(client.platforms||[]).join(', ')||'See brief'}`, margin+12, y+42);
+  doc.setFont('helvetica','italic'); doc.setTextColor(80,80,76);
+  const offerShort = (client.offer||'See project brief').substring(0,90);
+  doc.text(`Offer: ${offerShort}${client.offer&&client.offer.length>90?'...':''}`, margin+12, y+56);
+  y+=84;
+  // Director note
+  checkPage(80);
+  doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(61,153,96);
+  doc.text('DIRECTOR\'S NOTE', margin, y); y+=14;
+  doc.setFillColor(61,153,96); doc.rect(margin, y, 3, 32, 'F');
+  doc.setFont('helvetica','italic'); doc.setFontSize(11); doc.setTextColor(40,40,38);
+  const dLines = doc.splitTextToSize(concept.directors_note||'', W-margin*2-16);
+  doc.text(dLines, margin+10, y+12); y += Math.max(40, dLines.length*14) + 20;
+  // Hook
+  checkPage(80);
+  doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(61,153,96);
+  doc.text('HOOK — NAIL THIS IN 2 SECONDS', margin, y); y+=14;
+  doc.setFillColor(61,153,96); doc.rect(margin,y,4,36,'F');
+  doc.setFont('helvetica','bold'); doc.setFontSize(15); doc.setTextColor(10,10,8);
+  const hLines = doc.splitTextToSize(concept.hook, W-margin*2-14);
+  doc.text(hLines, margin+12, y+14); y += Math.max(42, hLines.length*18) + 24;
+  // Script
+  checkPage(40);
+  doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(61,153,96);
+  doc.text('FULL SCRIPT', margin, y); y+=10;
+  doc.setFont('helvetica','italic'); doc.setFontSize(9); doc.setTextColor(120,120,116);
+  doc.text('Read exactly as written. [pause] = 1-second beat. Delivery notes in brackets are not read aloud.', margin, y+=12); y+=18;
+  const scriptLines = (concept.script||'').split('\n');
+  scriptLines.forEach(line => {
+    checkPage(20);
+    const isNote = /^\[/.test(line.trim());
+    if (line.trim()==='') { y+=8; return; }
+    doc.setFont('helvetica', isNote?'italic':'normal');
+    doc.setFontSize(isNote?9:12);
+    doc.setTextColor(isNote?120:10, isNote?120:10, isNote?116:8);
+    const wrapped = doc.splitTextToSize(line, W-margin*2-(isNote?20:0));
+    doc.text(wrapped, margin+(isNote?16:0), y);
+    y += wrapped.length*(isNote?12:15)+4;
+  });
+  // Footer
+  doc.setFillColor(61,153,96); doc.rect(margin,PH-40,W-margin*2,1,'F');
+  doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(100,100,96);
+  doc.text('INTERNAL USE ONLY — Forge Marketing', W/2, PH-26, {align:'center'});
+  doc.save(`${slugify(client.bizname)}-${slugify(concept.title)}-internal.pdf`);
+}
+
+function slugify(s) { return (s||'untitled').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''); }
+
+// ── AUTOSAVE ──
+let autosaveTimer = null;
+const savedIndicator = document.createElement('span');
+savedIndicator.id = 'autosave-indicator';
+savedIndicator.style.cssText = 'font-size:11px;font-family:"DM Mono",monospace;color:var(--muted);margin-left:12px;opacity:0;transition:opacity 0.4s';
+savedIndicator.textContent = 'autosaved';
+document.querySelector('.form-actions').appendChild(savedIndicator);
+
+function triggerAutosave() {
+  const hasName = (document.getElementById('f-bizname').value||'').trim();
+  if (!hasName) return;
+  clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(() => {
+    if (!editingClientId) { editingClientId = 'c'+Date.now(); activeClientId = editingClientId; }
+    const c = {
+      id:editingClientId,
+      bizname:v('f-bizname'),contact:v('f-contact'),offer:v('f-offer'),price:v('f-price'),'offer-age':v('f-offer-age'),
+      'close-type':getChecked('close-type'),geo:v('f-geo'),
+      icp:v('f-icp'),before:v('f-before'),after:v('f-after'),objections:v('f-objections'),skepticism:v('f-skepticism'),voice:v('f-voice'),
+      proof1:v('f-proof1'),proof2:v('f-proof2'),'clients-total':v('f-clients-total'),credibility:v('f-credibility'),
+      competitors:v('f-competitors'),differentiator:v('f-differentiator'),'past-ads':v('f-past-ads'),'best-segments':v('f-best-segments'),
+      platforms:getChecked('platforms'),spend:v('f-spend'),cpl:v('f-cpl'),funnel:v('f-funnel'),metrics:v('f-metrics'),'winning-ads':v('f-winning-ads'),
+      brand:v('f-brand'),inspo:v('f-inspo'),limits:v('f-limits'),talent:v('f-talent'),misc:v('f-misc')
+    };
+    const idx = clients.findIndex(x => x.id === editingClientId);
+    if (idx > -1) clients[idx] = c; else clients.push(c);
+    persist(); updateBadge(); renderClients();
+    savedIndicator.style.opacity = '1';
+    setTimeout(() => { savedIndicator.style.opacity = '0'; }, 2000);
+  }, 800);
+}
+
+document.querySelectorAll('#panel-form input, #panel-form textarea').forEach(el => el.addEventListener('input', triggerAutosave));
+document.querySelectorAll('.check-opt').forEach(opt => opt.addEventListener('click', () => setTimeout(triggerAutosave, 50)));
+
+renderClients();updateBadge();
+
+</script>
+</body>
+</html>
