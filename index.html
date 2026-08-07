@@ -12,6 +12,12 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+  if (window.pdfjsLib) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+</script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -609,6 +615,40 @@ const sb = {
   async deleteWhere(table, col, val, col2, val2) { return await sb.query(table,'DELETE',null,`?${col}=eq.${encodeURIComponent(val)}&${col2}=eq.${val2}`); },
 };
 
+// ── WORKER CLIENT ──
+// Always read the response body. A bare "Worker returned 500" hides the reason
+// the worker (or the Anthropic API behind it) actually failed.
+async function callWorker(payload) {
+  let res;
+  try {
+    res = await fetch(WORKER_URL, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+  } catch(e) {
+    throw new Error('Could not reach the API worker — check your connection or the worker URL.');
+  }
+
+  const raw = await res.text();
+
+  if(!res.ok) {
+    let detail = '';
+    try {
+      const j = JSON.parse(raw);
+      detail = j.error?.message || (typeof j.error === 'string' ? j.error : '') || j.message || '';
+    } catch(e) { /* not JSON — fall back to raw text */ }
+    if(!detail) detail = raw.trim().slice(0, 400);
+    throw new Error(`Worker returned ${res.status}${detail ? ' — ' + detail : ' (no detail in response body)'}`);
+  }
+
+  try {
+    return JSON.parse(raw);
+  } catch(e) {
+    throw new Error('Worker returned a non-JSON response: ' + raw.trim().slice(0, 300));
+  }
+}
+
 // ── STATE ──
 let clients = [];
 let activeClientId = null;
@@ -1077,9 +1117,7 @@ async function generate(){
   document.getElementById('gen-btn').disabled=true;
   let mi=0;const lint=setInterval(()=>{document.getElementById('loading-text').textContent=loadMsgs[mi++%loadMsgs.length];},1800);
   try{
-    const res=await fetch(WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:buildPrompt(client,outputType,stage,goal,angle,length,qty)})});
-    if(!res.ok) throw new Error('Worker returned '+res.status);
-    const data=await res.json();
+    const data=await callWorker({prompt:buildPrompt(client,outputType,stage,goal,angle,length,qty)});
     // Save generation to Supabase
     if(data.concepts&&data.concepts.length>0){
       const now=new Date();
@@ -1433,26 +1471,24 @@ async function processFiles(files) {
   progressText.textContent = `Reading ${files.length} file${files.length!==1?'s':''}...`;
 
   try {
-    // Convert files to base64/text for Claude
+    // Extract readable text from each file
     const fileContents = await Promise.all(files.map(async (file, i) => {
       progressBar.style.width = (10 + (i/files.length)*30) + '%';
       return await readFileForClaude(file);
     }));
 
+    const readable = fileContents.filter(f => f.ok);
+    const skipped = fileContents.filter(f => !f.ok);
+
     progressBar.style.width = '45%';
-    progressText.textContent = 'Sending to Claude for extraction...';
 
-    // Build extraction prompt
-    const extractPrompt = buildExtractionPrompt(fileContents);
-
-    // Call Claude via worker
-    const res = await fetch(WORKER_URL, {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ prompt: extractPrompt, max_tokens: 2000 })
-    });
-    if(!res.ok) throw new Error('Worker returned '+res.status);
-    const data = await res.json();
+    // Only call Claude if we actually extracted text. Sending unreadable files
+    // wastes a request and produces garbage extractions.
+    let data = null;
+    if(readable.length) {
+      progressText.textContent = `Sending ${readable.length} file${readable.length!==1?'s':''} to Claude for extraction...`;
+      data = await callWorker({ prompt: buildExtractionPrompt(fileContents), max_tokens: 2000 });
+    }
 
     progressBar.style.width = '75%';
     progressText.textContent = 'Saving files...';
@@ -1474,7 +1510,20 @@ async function processFiles(files) {
     }
 
     progressBar.style.width = '100%';
-    progressText.textContent = 'Done — review extracted fields below';
+
+    if(!readable.length) {
+      progressText.textContent = 'Files saved — no readable text found';
+      setTimeout(() => { progressEl.style.display = 'none'; }, 1000);
+      document.getElementById('file-input').value = '';
+      alert('Files were saved, but no text could be extracted:\n\n'
+        + skipped.map(f => `• ${f.name} — ${f.reason}`).join('\n')
+        + '\n\nNothing was sent to Claude. Fill the profile fields manually, or upload a text-based PDF.');
+      return;
+    }
+
+    progressText.textContent = skipped.length
+      ? `Done — ${skipped.length} file${skipped.length!==1?'s':''} skipped, review fields below`
+      : 'Done — review extracted fields below';
 
     // Parse extracted data
     let extracted = {};
@@ -1500,28 +1549,131 @@ async function processFiles(files) {
   document.getElementById('file-input').value = '';
 }
 
-async function readFileForClaude(file) {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    const isImage = file.type.startsWith('image/');
-    const isBinary = file.type.includes('pdf') || file.type.includes('word') || file.type.includes('docx');
+// ── FILE READING ──
+// PDF and DOCX are binary containers with compressed streams. Reading them with
+// FileReader.readAsText() returns raw container bytes, not the document text —
+// that garbage was what got sent to Claude. Extract real text instead.
 
-    if(isImage) {
-      reader.onload = e => resolve({ name: file.name, type: file.type, isImage: true, data: e.target.result.split(',')[1] });
-      reader.readAsDataURL(file);
-    } else {
-      // Read as text for everything else including PDFs (text extraction)
-      reader.onload = e => resolve({ name: file.name, type: file.type, isImage: false, text: e.target.result });
-      reader.readAsText(file);
-    }
+const MAX_CHARS_PER_FILE = 8000;
+const MAX_PDF_PAGES = 30;
+
+function readAsBuffer(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => resolve(e.target.result);
+    reader.onerror = () => reject(new Error('file could not be read from disk'));
+    reader.readAsArrayBuffer(file);
   });
 }
 
+function readAsPlainText(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => resolve(e.target.result || '');
+    reader.onerror = () => reject(new Error('file could not be read from disk'));
+    reader.readAsText(file);
+  });
+}
+
+async function extractPdfText(file) {
+  if(typeof pdfjsLib === 'undefined') throw new Error('the PDF reader failed to load — check your connection and reload');
+  const buf = await readAsBuffer(file);
+  const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buf) }).promise;
+  const pages = [];
+  let chars = 0;
+  const limit = Math.min(pdf.numPages, MAX_PDF_PAGES);
+  for(let i = 1; i <= limit; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const pageText = content.items.map(it => it.str).join(' ').replace(/\s+/g, ' ').trim();
+    if(pageText) { pages.push(pageText); chars += pageText.length; }
+    if(chars >= MAX_CHARS_PER_FILE) break;
+  }
+  return pages.join('\n\n').trim();
+}
+
+async function extractDocxText(file) {
+  if(typeof JSZip === 'undefined') throw new Error('the DOCX reader failed to load — check your connection and reload');
+  const buf = await readAsBuffer(file);
+  const zip = await JSZip.loadAsync(buf);
+  const doc = zip.file('word/document.xml');
+  if(!doc) throw new Error('not a readable .docx file');
+  const xml = await doc.async('string');
+  return xml
+    .replace(/<w:tab[^>]*\/>/g, '\t')
+    .replace(/<\/w:p>/g, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"').replace(/&apos;/g, "'")
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+// Detects container bytes that slipped through as "text" so we never ship them to Claude.
+function looksBinary(text) {
+  const sample = text.slice(0, 2000);
+  if(!sample.length) return false;
+  let bad = 0;
+  for(let i = 0; i < sample.length; i++) {
+    const c = sample.charCodeAt(i);
+    if(c === 0xFFFD || c < 9 || (c > 13 && c < 32)) bad++;
+  }
+  return bad / sample.length > 0.05;
+}
+
+// Returns { name, type, ok, text } on success, or { name, type, ok:false, reason } when
+// the file can't be read. Never throws — one bad file shouldn't kill the whole upload.
+async function readFileForClaude(file) {
+  const name = file.name || 'file';
+  const type = file.type || '';
+  const lower = name.toLowerCase();
+  const base = { name, type };
+
+  try {
+    if(type.startsWith('image/')) {
+      // The worker's request contract is a plain text prompt, so image bytes have
+      // nowhere to go. Say so instead of sending a placeholder Claude can't use.
+      return { ...base, ok: false, reason: 'image files are not supported yet' };
+    }
+
+    if(type.includes('pdf') || lower.endsWith('.pdf')) {
+      const text = await extractPdfText(file);
+      if(!text) return { ...base, ok: false, reason: 'no selectable text — likely a scanned PDF, which needs OCR' };
+      return { ...base, ok: true, text };
+    }
+
+    if(lower.endsWith('.docx') || type.includes('officedocument.wordprocessingml')) {
+      const text = await extractDocxText(file);
+      if(!text) return { ...base, ok: false, reason: 'no text found in the document' };
+      return { ...base, ok: true, text };
+    }
+
+    if(lower.endsWith('.doc')) {
+      return { ...base, ok: false, reason: 'legacy .doc is not readable — re-save as .docx or PDF' };
+    }
+
+    const text = await readAsPlainText(file);
+    if(!text.trim()) return { ...base, ok: false, reason: 'file is empty' };
+    if(looksBinary(text)) return { ...base, ok: false, reason: 'unsupported binary format' };
+    return { ...base, ok: true, text };
+
+  } catch(err) {
+    return { ...base, ok: false, reason: err.message || 'could not be read' };
+  }
+}
+
 function buildExtractionPrompt(fileContents) {
-  const fileDescriptions = fileContents.map(f => {
-    if(f.isImage) return `[IMAGE FILE: ${f.name} — describe any visible text, brand info, or relevant content]`;
-    return `[FILE: ${f.name}]\n${(f.text||'').substring(0,8000)}`;
-  }).join('\n\n---\n\n');
+  const readable = fileContents.filter(f => f.ok);
+  const skipped = fileContents.filter(f => !f.ok);
+
+  let fileDescriptions = readable.map(f =>
+    `[FILE: ${f.name}]\n${f.text.substring(0, MAX_CHARS_PER_FILE)}`
+  ).join('\n\n---\n\n');
+
+  if(skipped.length) {
+    fileDescriptions += `\n\n---\n\n[THESE FILES COULD NOT BE READ — ignore them entirely, do not guess at their contents: ${skipped.map(f => `${f.name} (${f.reason})`).join('; ')}]`;
+  }
 
   return `You are analyzing client onboarding files for a video ad creative agency. Extract any relevant information and map it to these profile fields.
 
