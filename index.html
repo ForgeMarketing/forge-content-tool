@@ -518,21 +518,37 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
           <div>
             <span class="field-label">Video length</span>
             <div class="badge-grid" id="length-badges">
-              <span class="badge active" data-val="15-30 seconds — hook, one key point, CTA only. No filler.">15–30s</span>
+              <span class="badge" data-val="15-30 seconds — hook, one key point, CTA only. No filler.">15–30s</span>
+              <span class="badge" data-val="30-45 seconds — hook, one mechanism beat, CTA. Tight.">30–45s</span>
               <span class="badge" data-val="45-60 seconds — hook, mechanism beat, proof beat, CTA.">45–60s</span>
-              <span class="badge" data-val="90-120 seconds — hook, problem expansion, full mechanism, proof stack, CTA.">90–120s</span>
+              <span class="badge" data-val="60-90 seconds — hook, problem expansion, mechanism, one proof point, CTA.">60–90s</span>
+              <span class="badge active" data-val="90-120 seconds — hook, problem expansion, full mechanism, proof stack, CTA.">90–120s</span>
+              <span class="badge" data-val="120-180 seconds — hook, problem expansion, full mechanism, layered proof stack, objection handling, double CTA.">2–3 min</span>
             </div>
           </div>
           <div>
-            <span class="field-label">Quantity</span>
+            <span class="field-label" id="qty-label">How many scripts</span>
             <div class="badge-grid" id="qty-badges">
               <span class="badge" data-val="1">1</span>
-              <span class="badge active" data-val="3">3</span>
+              <span class="badge active" data-val="2">2</span>
+              <span class="badge" data-val="3">3</span>
+              <span class="badge" data-val="4">4</span>
               <span class="badge" data-val="5">5</span>
               <span class="badge" data-val="10">10</span>
               <span class="badge" data-val="20">20</span>
               <span class="badge" data-val="30">30</span>
               <span class="badge" data-val="40">40</span>
+            </div>
+          </div>
+          <div id="hook-qty-wrap" style="display:none">
+            <span class="field-label">How many hooks</span>
+            <div class="badge-grid" id="hook-qty-badges">
+              <span class="badge active" data-val="2">2</span>
+              <span class="badge" data-val="3">3</span>
+              <span class="badge" data-val="5">5</span>
+              <span class="badge" data-val="8">8</span>
+              <span class="badge" data-val="10">10</span>
+              <span class="badge" data-val="15">15</span>
             </div>
           </div>
         </div>
@@ -1001,13 +1017,25 @@ document.querySelectorAll('.check-opt').forEach(opt=>opt.addEventListener('click
 }));
 
 // Badge groups
-['output-type-badges','stage-badges','goal-badges','length-badges','qty-badges'].forEach(gId=>{
+['output-type-badges','stage-badges','goal-badges','length-badges','qty-badges','hook-qty-badges'].forEach(gId=>{
   document.querySelectorAll('#'+gId+' .badge').forEach(b=>b.addEventListener('click',()=>{
     document.querySelectorAll('#'+gId+' .badge').forEach(x=>x.classList.remove('active'));
     b.classList.add('active');
+    if(gId==='output-type-badges') syncGenControls();
   }));
 });
 function getActive(gId){const el=document.querySelector('#'+gId+' .badge.active');return el?el.dataset.val:'';}
+
+// The hook count only applies to "Scripts + hooks". For "Hook bank" the main
+// quantity control already is the hook count, so relabel it rather than show both.
+function syncGenControls(){
+  const outputType=getActive('output-type-badges');
+  const hookWrap=document.getElementById('hook-qty-wrap');
+  const qtyLabel=document.getElementById('qty-label');
+  if(hookWrap) hookWrap.style.display = outputType==='full_batch' ? '' : 'none';
+  if(qtyLabel) qtyLabel.textContent = outputType==='hooks_only' ? 'How many hooks' : 'How many scripts';
+}
+syncGenControls();
 
 // ── AUTOSAVE ──
 let autosaveTimer=null;
@@ -1041,7 +1069,7 @@ function triggerAutosave(){
 document.querySelectorAll('#panel-form input,#panel-form textarea').forEach(el=>el.addEventListener('input',triggerAutosave));
 
 // ── PROMPT BUILDER ──
-function buildPrompt(client,outputType,stage,goal,angle,length,qty){
+function buildPrompt(client,outputType,stage,goal,angle,length,qty,hookQty){
   const angles={
     problem_agitation:'Problem agitation to mechanism: Open with a visceral scroll-stopping statement about their core pain. Force self-identification. Bridge to the mechanism as the only logical solution.',
     proof_led:'Proof-led credibility: Open with the single most powerful client result. Build credibility in the first 5 seconds. Connect that result to the process so the viewer understands why it worked.',
@@ -1092,13 +1120,13 @@ Competitors: ${c('competitors')} | Differentiator: ${c('differentiator')}
 Talent: ${c('talent')} | Limits (NEVER VIOLATE): ${c('limits')}
 Winning ads: ${c('winning-ads')} | Inspo: ${c('inspo')}
 
-BRIEF: Output=${outputType} | Stage=${stage} | Goal=${goal} | Angle=${angles[angle]||angle} | Length=${length} | Qty=${qty}
+BRIEF: Output=${outputType} | Stage=${stage} | Goal=${goal} | Angle=${angles[angle]||angle} | Length=${length} | Qty=${qty}${outputType==='full_batch'?` | Hooks=${hookQty}`:''}
 
 ${outputType==='hooks_only'
-?`Generate exactly ${qty} hooks. Each standalone scroll-stop opening (1-3 lines). Cover different hook types. For each: hook text, type label, one sentence on why it stops the scroll.
+?`Generate exactly ${qty} hooks. Each is a standalone scroll-stop opening that runs 5-15 seconds read aloud — roughly 12-40 words. Not a one-liner, not a full script. Cover different hook types. For each: hook text, type label, one sentence on why it stops the scroll.
 JSON only: {"hooks":[{"hook":"...","type":"...","why":"..."}],"winner_pick":"..."}`
 :outputType==='full_batch'
-?`Generate ${qty} full scripts AND 8 hooks covering all hook types.
+?`Generate exactly ${qty} full scripts at the video length above, AND exactly ${hookQty} hooks. Each hook is a standalone scroll-stop opening that runs 5-15 seconds read aloud — roughly 12-40 words. Not a one-liner, not a full script. Use a different hook type for each.
 JSON only: {"concepts":[{"title":"...","hook":"...","script":"...","directors_note":"...","why_it_converts":"..."}],"hook_bank":[{"hook":"...","type":"...","why":"..."}],"winner_pick":"..."}`
 :`Generate exactly ${qty} complete video scripts. Different hook types across scripts. Use client's exact customer language. Only include provided proof points. Respect all hard limits.
 JSON only, no markdown: {"concepts":[{"title":"...","hook":"...","script":"...","directors_note":"...","why_it_converts":"..."}],"winner_pick":"..."}`}`;
@@ -1110,6 +1138,7 @@ async function generate(){
   if(!client){showError('No client loaded. Go to Clients and select one first.');return;}
   const outputType=getActive('output-type-badges'),stage=getActive('stage-badges'),goal=getActive('goal-badges');
   const angle=document.getElementById('angle-select').value,length=getActive('length-badges'),qty=getActive('qty-badges');
+  const hookQty=getActive('hook-qty-badges')||'8';
   document.getElementById('empty-state').style.display='none';
   document.getElementById('output-section').style.display='none';
   document.getElementById('error-box').style.display='none';
@@ -1117,7 +1146,7 @@ async function generate(){
   document.getElementById('gen-btn').disabled=true;
   let mi=0;const lint=setInterval(()=>{document.getElementById('loading-text').textContent=loadMsgs[mi++%loadMsgs.length];},1800);
   try{
-    const data=await callWorker({prompt:buildPrompt(client,outputType,stage,goal,angle,length,qty)});
+    const data=await callWorker({prompt:buildPrompt(client,outputType,stage,goal,angle,length,qty,hookQty)});
     // Save generation to Supabase
     if(data.concepts&&data.concepts.length>0){
       const now=new Date();
