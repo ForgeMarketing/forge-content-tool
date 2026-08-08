@@ -1182,17 +1182,28 @@ function renderOutputDisplay(data,client,stage,goal,length){
 
   // Download all bar
   const existingBar=document.getElementById('dl-all-bar');if(existingBar)existingBar.remove();
-  if(data.concepts&&data.concepts.length>0){
-    const bar=document.createElement('div');
-    bar.className='dl-all-bar';bar.id='dl-all-bar';
-    bar.innerHTML=`<span class="dl-all-label">Download all ${data.concepts.length} scripts</span>
-      <div class="dl-all-btns">
-        <button id="dl-all-btn-all" class="dl-all-btn all" data-label="All files (ZIP)" onclick="downloadAllAsZip('all')">All files (ZIP)</button>
-        <button id="dl-all-btn-client-docx" class="dl-all-btn" data-label="Client · Word" onclick="downloadAllAsZip('client-docx')">Client · Word</button>
+  const barConcepts=data.concepts||[];
+  const barHooks=data.hooks||data.hook_bank||[];
+  if(barConcepts.length||barHooks.length){
+    const label=barConcepts.length&&barHooks.length
+      ? `Download all ${barConcepts.length} scripts + ${barHooks.length} hooks`
+      : barConcepts.length
+        ? `Download all ${barConcepts.length} script${barConcepts.length!==1?'s':''}`
+        : `Download all ${barHooks.length} hook${barHooks.length!==1?'s':''}`;
+    let btns=`<button id="dl-all-btn-all" class="dl-all-btn all" data-label="All files (ZIP)" onclick="downloadAllAsZip('all')">All files (ZIP)</button>`;
+    if(barConcepts.length){
+      btns+=`<button id="dl-all-btn-client-docx" class="dl-all-btn" data-label="Client · Word" onclick="downloadAllAsZip('client-docx')">Client · Word</button>
         <button id="dl-all-btn-client-pdf" class="dl-all-btn" data-label="Client · PDF" onclick="downloadAllAsZip('client-pdf')">Client · PDF</button>
         <button id="dl-all-btn-internal-docx" class="dl-all-btn" data-label="Internal · Word" onclick="downloadAllAsZip('internal-docx')">Internal · Word</button>
-        <button id="dl-all-btn-internal-pdf" class="dl-all-btn" data-label="Internal · PDF" onclick="downloadAllAsZip('internal-pdf')">Internal · PDF</button>
-      </div>`;
+        <button id="dl-all-btn-internal-pdf" class="dl-all-btn" data-label="Internal · PDF" onclick="downloadAllAsZip('internal-pdf')">Internal · PDF</button>`;
+    }
+    if(barHooks.length){
+      btns+=`<button class="dl-all-btn" onclick="dlHooksDocx()">Hooks · Word</button>
+        <button class="dl-all-btn" onclick="dlHooksPdf()">Hooks · PDF</button>`;
+    }
+    const bar=document.createElement('div');
+    bar.className='dl-all-bar';bar.id='dl-all-bar';
+    bar.innerHTML=`<span class="dl-all-label">${label}</span><div class="dl-all-btns">${btns}</div>`;
     document.getElementById('winner-area').before(bar);
   }
 
@@ -1224,7 +1235,16 @@ function renderOutputDisplay(data,client,stage,goal,length){
     const hooks=data.hooks||data.hook_bank;
     const hCard=document.createElement('div');hCard.className='concept-card';
     hCard.innerHTML=`<div class="concept-header" onclick="toggleC(this)"><div><div class="concept-num">HOOK BANK</div><div class="concept-title">${hooks.length} hooks — all types covered</div></div><div class="concept-toggle open">⌄</div></div>
-    <div class="concept-body open">${hooks.map((h,i)=>`<div class="csec" style="border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:14px"><div class="csec-label">Hook ${i+1} · ${esc(h.type||'')}</div><div class="hook-text" style="font-size:15px;margin-bottom:8px">${esc(h.hook)}</div><div style="font-size:12px;color:var(--muted);font-style:italic">${esc(h.why||'')}</div></div>`).join('')}</div>`;
+    <div class="concept-body open">${hooks.map((h,i)=>`<div class="csec" style="border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:14px"><div class="csec-label">Hook ${i+1} · ${esc(h.type||'')}</div><div class="hook-text" style="font-size:15px;margin-bottom:8px">${esc(h.hook)}</div><div style="font-size:12px;color:var(--muted);font-style:italic">${esc(h.why||'')}</div></div>`).join('')}
+      <div class="copy-row"><button class="copy-btn" onclick="cpHooks(this)">Copy all hooks</button></div>
+      <div class="dl-row">
+        <div class="dl-group"><div class="dl-label">Hook bank</div><div class="dl-btns">
+          <button class="dl-btn client" onclick="dlHooksDocx()">Word</button>
+          <button class="dl-btn client" onclick="dlHooksPdf()">PDF</button>
+          <button class="dl-btn internal" onclick="dlHooksTxt()">Text</button>
+        </div></div>
+      </div>
+    </div>`;
     el.appendChild(hCard);
   }
 
@@ -1238,6 +1258,23 @@ function cpTxt(btn,text){navigator.clipboard.writeText(text).then(()=>{btn.textC
 function showError(msg){const el=document.getElementById('error-box');el.textContent=msg;el.style.display='block';document.getElementById('empty-state').style.display='none';document.getElementById('loading-state').style.display='none';}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function getScript(idx){return lastOutputData&&lastOutputData.concepts?lastOutputData.concepts[idx]:null;}
+function getHooks(){return lastOutputData?(lastOutputData.hooks||lastOutputData.hook_bank||[]):[];}
+
+// Model output is not guaranteed to contain every field. jsPDF throws outright on a
+// non-string, which used to abort the whole ZIP — coerce before it reaches a builder.
+function sTxt(v,fallback){
+  if(typeof v==='string'&&v.trim()) return v;
+  if(typeof v==='number') return String(v);
+  return fallback||'';
+}
+
+function saveBlob(blob,filename){
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=filename;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
 
 // ── DOCX BLOB BUILDERS ──
 function buildClientDocxBlob(concept,client){
@@ -1251,10 +1288,10 @@ function buildClientDocxBlob(concept,client){
       new Paragraph({children:[new TextRun({text:'Video Ad Script',size:22,color:'888880',font:'Arial'})],spacing:{after:120}}),
       new Paragraph({border:{bottom:{color:'C9993A',style:BorderStyle.SINGLE,size:6}},spacing:{after:300}}),
       new Paragraph({children:[new TextRun({text:client.bizname||'Client',bold:true,size:32,font:'Arial'})],spacing:{before:200,after:80}}),
-      new Paragraph({children:[new TextRun({text:concept.title,size:24,color:'555550',font:'Arial'})],spacing:{after:60}}),
+      new Paragraph({children:[new TextRun({text:sTxt(concept.title,'Untitled script'),size:24,color:'555550',font:'Arial'})],spacing:{after:60}}),
       new Paragraph({children:[new TextRun({text:date,size:18,color:'888880',font:'Arial'})],spacing:{after:400}}),
       new Paragraph({children:[new TextRun({text:'HOOK — FIRST 2 SECONDS',bold:true,size:16,color:'C9993A',font:'Arial'})],spacing:{after:120}}),
-      new Paragraph({children:[new TextRun({text:concept.hook,bold:true,size:28,font:'Arial',color:'1a1a18'})],border:{left:{color:'C9993A',style:BorderStyle.SINGLE,size:12}},indent:{left:360},spacing:{after:400}}),
+      new Paragraph({children:[new TextRun({text:sTxt(concept.hook,'(no hook provided)'),bold:true,size:28,font:'Arial',color:'1a1a18'})],border:{left:{color:'C9993A',style:BorderStyle.SINGLE,size:12}},indent:{left:360},spacing:{after:400}}),
       new Paragraph({children:[new TextRun({text:'FULL SCRIPT',bold:true,size:16,color:'C9993A',font:'Arial'})],spacing:{after:160}}),
       ...scriptLines.map(line=>new Paragraph({children:[new TextRun({text:line||'',size:22,font:'Arial',italics:/^\[/.test((line||'').trim())})],spacing:{after:120}})),
       new Paragraph({spacing:{before:600},border:{top:{color:'C9993A',style:BorderStyle.SINGLE,size:4}}}),
@@ -1273,7 +1310,7 @@ function buildInternalDocxBlob(concept,client){
     const doc=new Document({sections:[{properties:{},children:[
       new Paragraph({children:[new TextRun({text:'FORGE MARKETING — INTERNAL',bold:true,size:20,color:'3d9960',font:'Arial'})],spacing:{after:40}}),
       new Paragraph({children:[new TextRun({text:'Talent Script Package',bold:true,size:28,color:'1a1a18',font:'Arial'})],spacing:{after:60}}),
-      new Paragraph({children:[new TextRun({text:'Client: '+(client.bizname||'Client')+'  ·  '+concept.title+'  ·  '+date,size:18,color:'666660',font:'Arial'})],border:{bottom:{color:'3d9960',style:BorderStyle.SINGLE,size:4}},spacing:{after:360}}),
+      new Paragraph({children:[new TextRun({text:'Client: '+(client.bizname||'Client')+'  ·  '+sTxt(concept.title,'Untitled script')+'  ·  '+date,size:18,color:'666660',font:'Arial'})],border:{bottom:{color:'3d9960',style:BorderStyle.SINGLE,size:4}},spacing:{after:360}}),
       new Paragraph({children:[new TextRun({text:'TALENT BRIEFING',bold:true,size:16,color:'3d9960',font:'Arial'})],spacing:{after:100}}),
       new Paragraph({children:[new TextRun({text:'Spokesperson: '+(client.talent||'See project brief'),size:20,font:'Arial'})],spacing:{after:80}}),
       new Paragraph({children:[new TextRun({text:'Business: '+(client.bizname||''),size:20,font:'Arial'})],spacing:{after:80}}),
@@ -1282,7 +1319,7 @@ function buildInternalDocxBlob(concept,client){
       new Paragraph({children:[new TextRun({text:"DIRECTOR'S NOTE",bold:true,size:16,color:'3d9960',font:'Arial'})],spacing:{after:100}}),
       new Paragraph({children:[new TextRun({text:concept.directors_note||'',size:20,font:'Arial',italics:true,color:'333330'})],indent:{left:360},border:{left:{color:'3d9960',style:BorderStyle.SINGLE,size:8}},spacing:{after:320}}),
       new Paragraph({children:[new TextRun({text:'HOOK — NAIL THIS IN 2 SECONDS',bold:true,size:16,color:'3d9960',font:'Arial'})],spacing:{after:100}}),
-      new Paragraph({children:[new TextRun({text:concept.hook,bold:true,size:30,font:'Arial',color:'1a1a18'})],border:{left:{color:'3d9960',style:BorderStyle.SINGLE,size:14}},indent:{left:360},spacing:{after:400}}),
+      new Paragraph({children:[new TextRun({text:sTxt(concept.hook,'(no hook provided)'),bold:true,size:30,font:'Arial',color:'1a1a18'})],border:{left:{color:'3d9960',style:BorderStyle.SINGLE,size:14}},indent:{left:360},spacing:{after:400}}),
       new Paragraph({children:[new TextRun({text:'FULL SCRIPT',bold:true,size:16,color:'3d9960',font:'Arial'})],spacing:{after:100}}),
       new Paragraph({children:[new TextRun({text:'Read exactly as written. [pause] = 1-second beat. Notes in brackets are not read aloud.',size:16,color:'888880',font:'Arial',italics:true})],spacing:{after:200}}),
       ...scriptLines.map(line=>{
@@ -1309,14 +1346,14 @@ function buildClientPdfBlob(concept,client){
   doc.setFont('helvetica','bold');doc.setFontSize(20);doc.setTextColor(20,20,18);
   doc.text(client.bizname||'Client',margin,y);y+=22;
   doc.setFont('helvetica','normal');doc.setFontSize(13);doc.setTextColor(80,80,75);
-  doc.text(concept.title,margin,y);y+=16;
+  doc.text(sTxt(concept.title,'Untitled script'),margin,y);y+=16;
   doc.setFontSize(10);doc.setTextColor(136,136,128);
   doc.text(new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}),margin,y);y+=36;
   doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(201,153,58);
   doc.text('HOOK — FIRST 2 SECONDS',margin,y);y+=14;
   doc.setFillColor(201,153,58);doc.rect(margin,y,3,28,'F');
   doc.setFont('helvetica','bold');doc.setFontSize(14);doc.setTextColor(20,20,18);
-  const hookLines=doc.splitTextToSize(concept.hook,W-margin*2-16);
+  const hookLines=doc.splitTextToSize(sTxt(concept.hook,'(no hook provided)'),W-margin*2-16);
   doc.text(hookLines,margin+12,y+14);y+=Math.max(36,hookLines.length*18)+24;
   doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(201,153,58);
   doc.text('FULL SCRIPT',margin,y);y+=16;
@@ -1346,7 +1383,7 @@ function buildInternalPdfBlob(concept,client){
   doc.setFont('helvetica','bold');doc.setFontSize(18);doc.setTextColor(20,20,18);
   doc.text('Talent Script Package',margin,y);y+=18;
   doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(100,100,96);
-  doc.text((client.bizname||'Client')+' · '+concept.title+' · '+new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}),margin,y);
+  doc.text((client.bizname||'Client')+' · '+sTxt(concept.title,'Untitled script')+' · '+new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}),margin,y);
   y+=6;doc.setFillColor(61,153,96);doc.rect(margin,y,W-margin*2,1,'F');y+=28;
   doc.setFillColor(240,250,244);doc.roundedRect(margin,y,W-margin*2,70,4,4,'F');
   doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(61,153,96);
@@ -1361,13 +1398,13 @@ function buildInternalPdfBlob(concept,client){
   doc.text("DIRECTOR'S NOTE",margin,y);y+=14;
   doc.setFillColor(61,153,96);doc.rect(margin,y,3,32,'F');
   doc.setFont('helvetica','italic');doc.setFontSize(11);doc.setTextColor(40,40,38);
-  const dLines=doc.splitTextToSize(concept.directors_note||'',W-margin*2-16);
+  const dLines=doc.splitTextToSize(sTxt(concept.directors_note,'—'),W-margin*2-16);
   doc.text(dLines,margin+10,y+12);y+=Math.max(40,dLines.length*14)+20;chk(80);
   doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(61,153,96);
   doc.text('HOOK — NAIL THIS IN 2 SECONDS',margin,y);y+=14;
   doc.setFillColor(61,153,96);doc.rect(margin,y,4,36,'F');
   doc.setFont('helvetica','bold');doc.setFontSize(15);doc.setTextColor(10,10,8);
-  const hLines=doc.splitTextToSize(concept.hook,W-margin*2-14);
+  const hLines=doc.splitTextToSize(sTxt(concept.hook,'(no hook provided)'),W-margin*2-14);
   doc.text(hLines,margin+12,y+14);y+=Math.max(42,hLines.length*18)+24;chk(40);
   doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(61,153,96);
   doc.text('FULL SCRIPT',margin,y);y+=10;
@@ -1387,41 +1424,158 @@ function buildInternalPdfBlob(concept,client){
   return doc.output('blob');
 }
 
+// ── HOOK BANK BLOB BUILDERS ──
+function buildHooksDocxBlob(hooks,client){
+  return new Promise((resolve,reject)=>{
+    if(!window.docx){reject(new Error('Word library not loaded'));return;}
+    const {Document,Paragraph,TextRun,AlignmentType,BorderStyle,Packer}=window.docx;
+    const date=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+    const children=[
+      new Paragraph({children:[new TextRun({text:'FORGE MARKETING',bold:true,size:28,color:'C9993A',font:'Arial'})]}),
+      new Paragraph({children:[new TextRun({text:'Hook Bank',size:22,color:'888880',font:'Arial'})],spacing:{after:120}}),
+      new Paragraph({border:{bottom:{color:'C9993A',style:BorderStyle.SINGLE,size:6}},spacing:{after:300}}),
+      new Paragraph({children:[new TextRun({text:client.bizname||'Client',bold:true,size:32,font:'Arial'})],spacing:{before:200,after:80}}),
+      new Paragraph({children:[new TextRun({text:hooks.length+' hooks  ·  '+date,size:18,color:'888880',font:'Arial'})],spacing:{after:400}}),
+    ];
+    hooks.forEach((h,i)=>{
+      children.push(new Paragraph({children:[new TextRun({text:'HOOK '+String(i+1).padStart(2,'0')+(sTxt(h.type)?'  ·  '+sTxt(h.type).toUpperCase():''),bold:true,size:16,color:'C9993A',font:'Arial'})],spacing:{before:240,after:100}}));
+      children.push(new Paragraph({children:[new TextRun({text:sTxt(h.hook,'(empty hook)'),bold:true,size:26,font:'Arial',color:'1a1a18'})],border:{left:{color:'C9993A',style:BorderStyle.SINGLE,size:12}},indent:{left:360},spacing:{after:100}}));
+      if(sTxt(h.why)) children.push(new Paragraph({children:[new TextRun({text:sTxt(h.why),size:18,italics:true,color:'666660',font:'Arial'})],indent:{left:360},spacing:{after:200}}));
+    });
+    children.push(new Paragraph({spacing:{before:600},border:{top:{color:'C9993A',style:BorderStyle.SINGLE,size:4}}}));
+    children.push(new Paragraph({children:[new TextRun({text:'Prepared by Forge Marketing  ·  forgemarketingteam.com',size:16,color:'888880',font:'Arial'})],alignment:AlignmentType.CENTER,spacing:{before:120}}));
+    Packer.toBlob(new Document({sections:[{properties:{},children}]})).then(resolve).catch(reject);
+  });
+}
+
+function buildHooksPdfBlob(hooks,client){
+  const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:'pt',format:'letter'});
+  const W=doc.internal.pageSize.getWidth(),PH=doc.internal.pageSize.getHeight(),margin=56;let y=56;
+  const chk=n=>{if(y+n>PH-70){doc.addPage();y=56;}};
+  doc.setFillColor(201,153,58);doc.rect(margin,y,W-margin*2,3,'F');y+=18;
+  doc.setFont('helvetica','bold');doc.setFontSize(18);doc.setTextColor(201,153,58);
+  doc.text('FORGE MARKETING',margin,y);y+=18;
+  doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(136,136,128);
+  doc.text('Hook Bank',margin,y);y+=32;
+  doc.setFillColor(201,153,58);doc.rect(margin,y,W-margin*2,1,'F');y+=24;
+  doc.setFont('helvetica','bold');doc.setFontSize(20);doc.setTextColor(20,20,18);
+  doc.text(sTxt(client.bizname,'Client'),margin,y);y+=20;
+  doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(136,136,128);
+  doc.text(hooks.length+' hooks  ·  '+new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}),margin,y);y+=34;
+  hooks.forEach((h,i)=>{
+    chk(90);
+    doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(201,153,58);
+    doc.text('HOOK '+String(i+1).padStart(2,'0')+(sTxt(h.type)?'  ·  '+sTxt(h.type).toUpperCase():''),margin,y);y+=14;
+    const hookLines=doc.splitTextToSize(sTxt(h.hook,'(empty hook)'),W-margin*2-16);
+    doc.setFillColor(201,153,58);doc.rect(margin,y,3,Math.max(20,hookLines.length*16),'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(20,20,18);
+    doc.text(hookLines,margin+12,y+12);y+=Math.max(26,hookLines.length*16)+8;
+    const why=sTxt(h.why);
+    if(why){
+      chk(30);
+      const whyLines=doc.splitTextToSize(why,W-margin*2-16);
+      doc.setFont('helvetica','italic');doc.setFontSize(10);doc.setTextColor(120,120,116);
+      doc.text(whyLines,margin+12,y);y+=whyLines.length*13+16;
+    } else { y+=8; }
+  });
+  doc.setFillColor(201,153,58);doc.rect(margin,PH-40,W-margin*2,1,'F');
+  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(136,136,128);
+  doc.text('Prepared by Forge Marketing  ·  forgemarketingteam.com',W/2,PH-26,{align:'center'});
+  return doc.output('blob');
+}
+
+function buildHooksTextBlob(hooks,client){
+  const lines=[(client.bizname||'Client')+' — Hook Bank',new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}),''];
+  hooks.forEach((h,i)=>{
+    lines.push('HOOK '+String(i+1).padStart(2,'0')+(sTxt(h.type)?'  ·  '+sTxt(h.type):''));
+    lines.push(sTxt(h.hook,'(empty hook)'));
+    if(sTxt(h.why)) lines.push('   why: '+sTxt(h.why));
+    lines.push('');
+  });
+  return new Blob([lines.join('\n')],{type:'text/plain'});
+}
+
 // ── INDIVIDUAL DOWNLOADS ──
-function dlClientDocx(idx){const c=getScript(idx);if(!c)return;buildClientDocxBlob(c,lastOutputClient).then(blob=>{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=slugify(lastOutputClient.bizname)+'-'+slugify(c.title)+'-client.docx';a.click();}).catch(err=>alert('Word download failed: '+err.message));}
-function dlClientPdf(idx){const c=getScript(idx);if(!c)return;const blob=buildClientPdfBlob(c,lastOutputClient);const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=slugify(lastOutputClient.bizname)+'-'+slugify(c.title)+'-client.pdf';a.click();}
-function dlInternalDocx(idx){const c=getScript(idx);if(!c)return;buildInternalDocxBlob(c,lastOutputClient).then(blob=>{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=slugify(lastOutputClient.bizname)+'-'+slugify(c.title)+'-internal.docx';a.click();}).catch(err=>alert('Word download failed: '+err.message));}
-function dlInternalPdf(idx){const c=getScript(idx);if(!c)return;const blob=buildInternalPdfBlob(c,lastOutputClient);const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=slugify(lastOutputClient.bizname)+'-'+slugify(c.title)+'-internal.pdf';a.click();}
+function scriptName(c,idx,suffix){return slugify(lastOutputClient.bizname)+'-'+(slugify(sTxt(c.title))||('script-'+(idx+1)))+'-'+suffix;}
+function dlClientDocx(idx){const c=getScript(idx);if(!c)return;buildClientDocxBlob(c,lastOutputClient).then(b=>saveBlob(b,scriptName(c,idx,'client.docx'))).catch(err=>alert('Word download failed: '+err.message));}
+function dlClientPdf(idx){const c=getScript(idx);if(!c)return;try{saveBlob(buildClientPdfBlob(c,lastOutputClient),scriptName(c,idx,'client.pdf'));}catch(err){alert('PDF download failed: '+err.message);}}
+function dlInternalDocx(idx){const c=getScript(idx);if(!c)return;buildInternalDocxBlob(c,lastOutputClient).then(b=>saveBlob(b,scriptName(c,idx,'internal.docx'))).catch(err=>alert('Word download failed: '+err.message));}
+function dlInternalPdf(idx){const c=getScript(idx);if(!c)return;try{saveBlob(buildInternalPdfBlob(c,lastOutputClient),scriptName(c,idx,'internal.pdf'));}catch(err){alert('PDF download failed: '+err.message);}}
+
+// ── HOOK BANK DOWNLOADS ──
+function hooksName(ext){return slugify(lastOutputClient&&lastOutputClient.bizname)+'-hook-bank.'+ext;}
+function dlHooksDocx(){const h=getHooks();if(!h.length){alert('No hooks generated yet.');return;}buildHooksDocxBlob(h,lastOutputClient).then(b=>saveBlob(b,hooksName('docx'))).catch(err=>alert('Word download failed: '+err.message));}
+function dlHooksPdf(){const h=getHooks();if(!h.length){alert('No hooks generated yet.');return;}try{saveBlob(buildHooksPdfBlob(h,lastOutputClient),hooksName('pdf'));}catch(err){alert('PDF download failed: '+err.message);}}
+function dlHooksTxt(){const h=getHooks();if(!h.length){alert('No hooks generated yet.');return;}saveBlob(buildHooksTextBlob(h,lastOutputClient),hooksName('txt'));}
+function cpHooks(btn){const h=getHooks();if(!h.length)return;const text=h.map((x,i)=>(i+1)+'. '+sTxt(x.hook)).join('\n');navigator.clipboard.writeText(text).then(()=>{btn.textContent='Copied ✓';btn.classList.add('copied');setTimeout(()=>{btn.textContent='Copy all hooks';btn.classList.remove('copied');},2000);});}
 
 // ── DOWNLOAD ALL ZIP ──
-function downloadAllAsZip(type){
-  if(!lastOutputData||!lastOutputData.concepts||!lastOutputClient){alert('No scripts generated yet.');return;}
+async function downloadAllAsZip(type){
+  if(!lastOutputData||!lastOutputClient){alert('Nothing generated yet.');return;}
   if(!window.JSZip){alert('Zip library not loaded. Please refresh and try again.');return;}
+
+  const client=lastOutputClient;
+  const concepts=lastOutputData.concepts||[];
+  const hooks=getHooks();
+  if(!concepts.length&&!hooks.length){alert('Nothing generated yet.');return;}
+
   const btn=document.getElementById('dl-all-btn-'+type);
   const origLabel=btn?btn.textContent:'';
   if(btn){btn.textContent='Zipping\u2026';btn.disabled=true;}
-  const client=lastOutputClient,concepts=lastOutputData.concepts;
+
   const zip=new window.JSZip(),clientSlug=slugify(client.bizname);
+  const failures=[];
+
+  // Build each script independently. One malformed script used to abort the whole
+  // archive \u2014 now it is skipped and named in the summary instead.
   const tasks=concepts.map(async(c,i)=>{
-    const titleSlug=slugify(c.title)||('script-'+(i+1));
-    if(type==='client-docx'){zip.file(clientSlug+'-'+titleSlug+'-client.docx',await buildClientDocxBlob(c,client));}
-    else if(type==='client-pdf'){zip.file(clientSlug+'-'+titleSlug+'-client.pdf',buildClientPdfBlob(c,client));}
-    else if(type==='internal-docx'){zip.file(clientSlug+'-'+titleSlug+'-internal.docx',await buildInternalDocxBlob(c,client));}
-    else if(type==='internal-pdf'){zip.file(clientSlug+'-'+titleSlug+'-internal.pdf',buildInternalPdfBlob(c,client));}
-    else if(type==='all'){
-      const folder=zip.folder('script-'+String(i+1).padStart(2,'0')+'-'+titleSlug);
-      const[cBlob,iBlob]=await Promise.all([buildClientDocxBlob(c,client),buildInternalDocxBlob(c,client)]);
-      folder.file(clientSlug+'-'+titleSlug+'-client.docx',cBlob);
-      folder.file(clientSlug+'-'+titleSlug+'-client.pdf',buildClientPdfBlob(c,client));
-      folder.file(clientSlug+'-'+titleSlug+'-internal.docx',iBlob);
-      folder.file(clientSlug+'-'+titleSlug+'-internal.pdf',buildInternalPdfBlob(c,client));
-    }
+    const titleSlug=slugify(sTxt(c.title))||('script-'+(i+1));
+    const label='Script '+(i+1)+(sTxt(c.title)?' ('+sTxt(c.title)+')':'');
+    const base=clientSlug+'-'+titleSlug;
+    try{
+      if(type==='client-docx'){zip.file(base+'-client.docx',await buildClientDocxBlob(c,client));}
+      else if(type==='client-pdf'){zip.file(base+'-client.pdf',buildClientPdfBlob(c,client));}
+      else if(type==='internal-docx'){zip.file(base+'-internal.docx',await buildInternalDocxBlob(c,client));}
+      else if(type==='internal-pdf'){zip.file(base+'-internal.pdf',buildInternalPdfBlob(c,client));}
+      else if(type==='all'){
+        const folder=zip.folder('script-'+String(i+1).padStart(2,'0')+'-'+titleSlug);
+        const[cBlob,iBlob]=await Promise.all([buildClientDocxBlob(c,client),buildInternalDocxBlob(c,client)]);
+        folder.file(base+'-client.docx',cBlob);
+        folder.file(base+'-client.pdf',buildClientPdfBlob(c,client));
+        folder.file(base+'-internal.docx',iBlob);
+        folder.file(base+'-internal.pdf',buildInternalPdfBlob(c,client));
+      }
+    }catch(err){ failures.push(label+' \u2014 '+err.message); }
   });
-  Promise.all(tasks).then(()=>zip.generateAsync({type:'blob'})).then(zipBlob=>{
-    const a=document.createElement('a');a.href=URL.createObjectURL(zipBlob);
-    a.download=clientSlug+'-scripts-'+type+'.zip';a.click();
-  }).catch(err=>alert('Zip failed: '+err.message))
-  .finally(()=>{if(btn){btn.textContent=origLabel;btn.disabled=false;}});
+
+  await Promise.all(tasks);
+
+  // Hooks ride along in the full archive, and are the whole archive when there are no scripts.
+  if(hooks.length&&(type==='all'||!concepts.length)){
+    try{
+      const folder=(type==='all'&&concepts.length)?zip.folder('hook-bank'):zip;
+      folder.file(clientSlug+'-hook-bank.docx',await buildHooksDocxBlob(hooks,client));
+      folder.file(clientSlug+'-hook-bank.pdf',buildHooksPdfBlob(hooks,client));
+      folder.file(clientSlug+'-hook-bank.txt',buildHooksTextBlob(hooks,client));
+    }catch(err){ failures.push('Hook bank \u2014 '+err.message); }
+  }
+
+  const fileCount=Object.keys(zip.files).filter(n=>!zip.files[n].dir).length;
+  if(!fileCount){
+    if(btn){btn.textContent=origLabel;btn.disabled=false;}
+    alert('Nothing could be exported.\n\n'+failures.join('\n'));
+    return;
+  }
+
+  try{
+    const zipBlob=await zip.generateAsync({type:'blob'});
+    saveBlob(zipBlob,clientSlug+'-'+(concepts.length?'scripts':'hooks')+'-'+type+'.zip');
+    if(failures.length) alert('Downloaded '+fileCount+' files, but these were skipped:\n\n'+failures.join('\n'));
+  }catch(err){
+    alert('Zip failed: '+err.message);
+  }finally{
+    if(btn){btn.textContent=origLabel;btn.disabled=false;}
+  }
 }
 
 
