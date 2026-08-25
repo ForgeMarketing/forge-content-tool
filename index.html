@@ -105,6 +105,13 @@ body.in-ws .desktop-tabs{display:flex}
 .gen-sidebar.busy .badge,.gen-sidebar.busy select{pointer-events:none;opacity:0.5}
 .hint-box{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;font-size:12px;color:var(--muted);line-height:1.55;margin-bottom:16px}
 .hint-box strong{color:var(--accent);font-weight:600}
+.site-scan-row{display:flex;gap:8px;margin-bottom:8px}
+.site-scan-row input{flex:1;font-size:16px;padding:11px 13px;border:1px solid var(--border);border-radius:var(--r);background:var(--s2);color:var(--text);font-family:'Inter',sans-serif;-webkit-appearance:none}
+.site-scan-row input:focus{outline:none;border-color:var(--accent-border)}
+.site-scan-row .btn{white-space:nowrap}
+.site-scan-note{font-size:11px;color:var(--dim);margin-bottom:16px;line-height:1.5}
+.gen-sidebar input[type=text]{width:100%;font-size:16px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r);background:var(--s2);color:var(--text);font-family:'Inter',sans-serif;-webkit-appearance:none}
+.gen-sidebar input[type=text]:focus{outline:none;border-color:var(--accent-border)}
 .qty-note{font-size:11px;color:var(--dim);margin-top:6px;line-height:1.5}
 .field-label{font-size:10px;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:8px;display:block}
 .badge-grid{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:4px}
@@ -258,6 +265,8 @@ body:not(.in-ws) .toast-wrap{bottom:calc(20px + var(--safe-bottom))}
   .page-wrap{padding:32px 40px}
   .field input,.field textarea,.field select{font-size:13px;padding:9px 12px}
   .gen-sidebar select{font-size:13px;padding:9px 12px}
+  .gen-sidebar input[type=text]{font-size:13px;padding:9px 12px}
+  .site-scan-row input{font-size:13px;padding:9px 12px}
   .search-input{font-size:13px}
   .badge{font-size:12px;padding:7px 12px;min-height:32px}
   .check-opt{font-size:12px;padding:7px 11px;min-height:36px}
@@ -448,8 +457,13 @@ body:not(.in-ws) .toast-wrap{bottom:calc(20px + var(--safe-bottom))}
 
       <!-- FILE UPLOAD SECTION -->
       <div class="upload-section">
-        <div class="form-section-title"><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent)">📎</span>&nbsp; Client Files &amp; AI Auto-Fill</div>
-        <div class="form-section-sub">Upload client files — brand guides, persona docs, testimonials, case studies. Claude reads them and auto-fills your profile fields. File names are logged to the client record.</div>
+        <div class="form-section-title"><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent)">🔍</span>&nbsp; AI Auto-Fill — Website &amp; Files</div>
+        <div class="form-section-sub">Point it at the client’s website or upload files (brand guides, persona docs, testimonials, case studies). Claude reads them, hunts for the strongest social proof and the service list, and auto-fills your profile fields for review.</div>
+        <div class="site-scan-row">
+          <input type="url" id="site-url" placeholder="https://clientwebsite.com" autocomplete="url" onkeydown="if(event.key==='Enter')scanWebsite()">
+          <button class="btn btn-primary" id="site-scan-btn" onclick="scanWebsite()">Scan Website</button>
+        </div>
+        <div class="site-scan-note">Scans the homepage plus service / testimonial / about pages. Everything lands in the review panel before it touches the profile.</div>
         <div class="upload-zone" id="upload-zone" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
           <input type="file" id="file-input" multiple accept=".pdf,.doc,.docx,.txt,.csv,.png,.jpg,.jpeg,.webp" onchange="handleFileSelect(event)">
           <div class="upload-zone-icon">⬆</div>
@@ -496,6 +510,11 @@ body:not(.in-ws) .toast-wrap{bottom:calc(20px + var(--safe-bottom))}
           <div>
             <span class="field-label">Primary goal</span>
             <div class="badge-grid" id="goal-badges"></div>
+          </div>
+          <div class="gen-ctrl-full">
+            <span class="field-label">Concept focus</span>
+            <input type="text" id="focus-input" placeholder="Specific service or offer — empty = general brand">
+            <div class="qty-note">Empty = general brand ads for the ICP. Type a service or offer (e.g. “kitchen remodels”) to anchor every concept on it.</div>
           </div>
           <div class="gen-ctrl-full angle-wrap">
             <span class="field-label">Script angle</span>
@@ -1158,7 +1177,7 @@ function loadGenerationById(gid) {
   const c = clients.find(x => x.id === activeClientId);
   lastOutputData = normalizeGeneration({ concepts: gen.concepts || [], winner_pick: gen.winner || '', hooks: gen.hooks || [] });
   lastOutputClient = c;
-  lastOutputMeta = { stage: gen.stage || '', goal: gen.goal || '', length: gen.length || '' };
+  lastOutputMeta = { stage: gen.stage || '', goal: gen.goal || '', length: gen.length || '', focus: sTxt(((gen.concepts||[])[0]||{})._focus,'') };
   activeHookIdx = {};
   showTab('generate');
   renderOutputDisplay();
@@ -1276,7 +1295,7 @@ function updateProfileHint() {
 }
 
 // ── PROMPT BUILDER ──
-function buildPrompt(client, stage, goal, angle, lengthId, qty) {
+function buildPrompt(client, stage, goal, angle, lengthId, qty, focus) {
   const c = k => (client[k]||'').trim();
   const L = LENGTHS.find(l => l.id === lengthId) || LENGTHS[4];
   const proofBlock = [c('proof1'), c('proof2')].filter(Boolean).join('\n');
@@ -1348,6 +1367,9 @@ BRIEF:
 Funnel stage: ${(STAGES[stage]||{}).prompt || stage}
 Primary goal: ${(GOALS[goal]||{}).prompt || goal}
 Script angle: ${(ANGLES[angle]||{}).prompt || angle}
+Concept focus: ${focus
+  ? `SPECIFIC OFFER — build every concept around this exact service/offer: "${focus}". The callout, the stated offer, the proof choices, and the bumper CTA all center on it. Do not sell the company generally.`
+  : `GENERAL BRAND — sell the company and its overall service quality to the ideal customer. Call out the ICP and make the brand the hero; specific services may appear as supporting detail, never as the core offer.`}
 Video length: ${L.label} — target ${L.words[0]}-${L.words[1]} spoken words per script.
 Concepts: exactly ${qty}
 
@@ -1375,6 +1397,7 @@ async function generate(){
   if (!client) { showError('Save the client profile first, then generate.'); return; }
   const stage=getActive('stage-badges'), goal=getActive('goal-badges'), lengthId=getActive('length-badges');
   const angle=document.getElementById('angle-select').value;
+  const focus=(document.getElementById('focus-input').value||'').trim();
   const qty=parseInt(getActive('qty-badges'))||2;
   const L=LENGTHS.find(l=>l.id===lengthId)||LENGTHS[4];
   const maxTokens=Math.min(24000, 600 + qty * L.tokensPerConcept);
@@ -1390,12 +1413,12 @@ async function generate(){
   let mi=0;const lint=setInterval(()=>{document.getElementById('loading-text').textContent=loadMsgs[mi++%loadMsgs.length];},2200);
 
   try{
-    const raw=await callWorker({ prompt: buildPrompt(client,stage,goal,angle,lengthId,qty), max_tokens: maxTokens });
+    const raw=await callWorker({ prompt: buildPrompt(client,stage,goal,angle,lengthId,qty,focus), max_tokens: maxTokens });
     const data=normalizeGeneration(parseWorkerJSON(raw));
     if(!data.concepts.length) throw new Error('The model returned no concepts. Try again.');
 
     lastOutputData=data; lastOutputClient=client;
-    lastOutputMeta={stage,goal,length:lengthId};
+    lastOutputMeta={stage,goal,length:lengthId,focus};
     activeHookIdx={};
 
     // Always persist successful generations
@@ -1404,7 +1427,7 @@ async function generate(){
         client_id:client.id, saved_at:humanNow(), saved_at_iso:new Date().toISOString(),
         output_type:'concepts', stage, goal, angle, length:lengthId,
         winner:data.winner_pick||'',
-        concepts:data.concepts, hooks:[]
+        concepts:data.concepts.map(c=>({...c,_focus:focus||''})), hooks:[]
       });
       await loadClientGenerations(client.id);
     }catch(e){
@@ -1439,7 +1462,7 @@ function renderOutputDisplay(){
   document.getElementById('error-box').style.display='none';
   document.getElementById('empty-state').style.display='none';
 
-  document.getElementById('output-meta').innerHTML=[client.bizname,stageLabel(meta.stage),goalLabel(meta.goal),lengthLabel(meta.length)]
+  document.getElementById('output-meta').innerHTML=[client.bizname,stageLabel(meta.stage),goalLabel(meta.goal),lengthLabel(meta.length),meta.focus?'Focus: '+meta.focus:'']
     .filter(Boolean).map(t=>`<span class="out-tag">${esc(t)}</span>`).join('');
 
   document.getElementById('winner-area').innerHTML=data.winner_pick
@@ -1944,6 +1967,67 @@ async function downloadAllAsZip(type){
   }
 }
 
+// ── WEBSITE SCAN ──
+// Fetching other sites needs a server (browser CORS) — the worker's
+// {action:'fetch_site'} mode does it (see worker/fetch-site-snippet.js), then
+// the pages ride the exact same extraction pipeline as uploaded files.
+async function scanWebsite() {
+  let url = (document.getElementById('site-url').value || '').trim();
+  if (!url) { toast("Paste the client's website URL first.", 'error'); return; }
+  if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+  try { new URL(url); } catch(e) { toast("That doesn't look like a valid URL.", 'error'); return; }
+
+  const btn = document.getElementById('site-scan-btn');
+  const progressEl = document.getElementById('upload-progress');
+  const progressText = document.getElementById('upload-progress-text');
+  const progressBar = document.getElementById('upload-bar');
+  btn.disabled = true; const orig = btn.textContent; btn.textContent = 'Scanning…';
+  document.getElementById('extract-review').style.display = 'none';
+  progressEl.style.display = 'block';
+  progressBar.style.width = '15%';
+  progressText.textContent = 'Fetching the site…';
+
+  try {
+    const res = await callWorker({ action: 'fetch_site', url });
+    const pages = (res && res.pages) || [];
+    if (!pages.length) throw new Error((res && res.error) || 'No readable pages came back from that site.');
+    progressBar.style.width = '50%';
+    progressText.textContent = `Read ${pages.length} page${pages.length!==1?'s':''} — extracting with Claude…`;
+    await runSiteExtraction(pages);
+    progressBar.style.width = '100%';
+    progressText.textContent = 'Done — review extracted fields below';
+    setTimeout(() => { progressEl.style.display = 'none'; }, 1000);
+  } catch(err) {
+    progressEl.style.display = 'none';
+    const msg = /prompt/i.test(err.message)
+      ? 'The worker does not support website scanning yet — paste worker/fetch-site-snippet.js into the Cloudflare worker first.'
+      : 'Site scan failed: ' + err.message;
+    toast(msg, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = orig;
+  }
+}
+
+// Second half of the scan — separated so the extraction leg is testable with
+// injected page text. pages: [{url, title, text}]
+async function runSiteExtraction(pages) {
+  const fileContents = pages.map(p => ({
+    name: (p.title ? p.title + ' — ' : '') + p.url,
+    type: 'text/html',
+    ok: true,
+    text: (p.text || '').slice(0, MAX_CHARS_PER_FILE)
+  }));
+  const data = await callWorker({ prompt: buildExtractionPrompt(fileContents), max_tokens: 6000 });
+  let extracted = {};
+  try {
+    extracted = parseWorkerJSON(data) || {};
+  } catch(e) {
+    throw new Error('Claude responded but the extraction could not be parsed: ' + e.message);
+  }
+  extractedData = extracted;
+  showExtractionReview(extracted);
+}
+
 // ── FILE UPLOAD & AI EXTRACTION ──
 let extractedData = {};
 
@@ -2034,7 +2118,7 @@ async function processFiles(files) {
     let data = null;
     if(readable.length) {
       progressText.textContent = `Sending ${readable.length} file${readable.length!==1?'s':''} to Claude for extraction...`;
-      data = await callWorker({ prompt: buildExtractionPrompt(fileContents), max_tokens: 2000 });
+      data = await callWorker({ prompt: buildExtractionPrompt(fileContents), max_tokens: 6000 });
     }
 
     progressBar.style.width = '75%';
@@ -2219,14 +2303,20 @@ function buildExtractionPrompt(fileContents) {
     fileDescriptions += `\n\n---\n\n[THESE FILES COULD NOT BE READ — ignore them entirely, do not guess at their contents: ${skipped.map(f => `${f.name} (${f.reason})`).join('; ')}]`;
   }
 
-  return `You are analyzing client onboarding files for a video ad creative agency. Extract any relevant information and map it to these profile fields.
+  return `You are analyzing client onboarding material (website pages and/or files) for a video ad creative agency. Extract any relevant information and map it to these profile fields.
 
-FILES TO ANALYZE:
+PRIORITIES:
+1. SOCIAL PROOF — hunt hardest for this. Find the strongest, most specific results: numbers, timeframes, named customers or initials, star ratings, award counts, verbatim testimonial quotes. Put the single best result in "proof1", the other strong ones in "proof2", and copy testimonial/review quotes VERBATIM into "voice" — do not paraphrase them.
+2. SERVICES — list every distinct service, offer, or package they sell in "services", one per line. These become ad-targeting options later.
+Skip generic marketing fluff ("we care about quality") — only extract specifics a direct-response ad could actually use.
+
+MATERIAL TO ANALYZE:
 ${fileDescriptions}
 
 Extract whatever you can find and return ONLY a JSON object with these exact keys (omit any key where nothing relevant was found). Every value must be a plain string:
 
 {
+  "services": "distinct services/offers they sell, one per line",
   "bizname": "business name if found",
   "contact": "primary contact name if found",
   "offer": "their core offer/service description",
@@ -2269,7 +2359,8 @@ function showExtractionReview(extracted) {
     'clients-total':'Total Clients Served', credibility:'Press / Awards / Credibility',
     competitors:'Competitors', differentiator:'Main Differentiator', spend:'Monthly Ad Spend',
     funnel:'Funnel After Click', metrics:'Success Metrics', brand:'Brand Guidelines',
-    inspo:'Creative Inspiration', limits:'Hard Limits', talent:'Spokesperson / Talent', misc:'Other Notes'
+    inspo:'Creative Inspiration', limits:'Hard Limits', talent:'Spokesperson / Talent', misc:'Other Notes',
+    services:'Services / Offers Found (saved into Anything Else)'
   };
 
   const filled = Object.keys(extracted).filter(k => coerceText(extracted[k]).trim());
@@ -2292,13 +2383,23 @@ function showExtractionReview(extracted) {
 function applyExtraction() {
   const filled = Object.keys(extractedData).filter(k => coerceText(extractedData[k]).trim());
   let applied = 0;
-  filled.forEach(k => {
+  // services appends to misc, so it must run after a plain misc value lands
+  const ordered = filled.filter(k => k !== 'services').concat(filled.includes('services') ? ['services'] : []);
+  ordered.forEach(k => {
     const extractEl = document.getElementById('extract-'+k);
-    const formEl = document.getElementById('f-'+k);
-    if(extractEl && formEl) {
-      const val = extractEl.value.trim();
-      if(val) { formEl.value = val; applied++; }
+    if(!extractEl) return;
+    const val = extractEl.value.trim();
+    if(!val) return;
+    if(k === 'services') {
+      // no dedicated column exists — file the service list under "Anything Else"
+      const misc = document.getElementById('f-misc');
+      const block = 'Services offered:\n' + val;
+      misc.value = misc.value.trim() ? (misc.value.trim() + '\n\n' + block) : block;
+      applied++;
+      return;
     }
+    const formEl = document.getElementById('f-'+k);
+    if(formEl) { formEl.value = val; applied++; }
   });
   dismissExtraction();
   triggerAutosave();

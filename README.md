@@ -28,6 +28,16 @@ One generation = 1–5 concepts. Each concept is what Forge sells:
   "winner_pick": "..." }
 ```
 
+## Website intake (auto-fill from a URL)
+
+The profile's "AI Auto-Fill" section accepts a client website URL. The app POSTs `{action:'fetch_site', url}` to the worker, which crawls the homepage plus up to 4 service/testimonial/about-style subpages and returns stripped page text; the pages then run through the same extraction prompt and review panel as uploaded files. The extraction prioritizes verbatim social proof (→ proof1/proof2/voice) and the service list (→ appended to the "Anything Else" field as `Services offered:`).
+
+**Worker prerequisite:** the fetch-site mode must be pasted into the Cloudflare worker — see [worker/fetch-site-snippet.js](worker/fetch-site-snippet.js) for the code and install steps (it also documents adding localhost to the CORS allowlist for local dev).
+
+## Concept focus
+
+The Generate rail has a "Concept focus" input: empty = general brand ads (ICP callout, brand as hero); a specific service/offer anchors every concept's callout, offer statement, proof selection, and bumper CTA on it. The focus is stamped on stored concepts (`_focus` in the jsonb) so history rows keep it.
+
 ## Exports
 
 Per concept: client DOCX/PDF (script only), internal DOCX/PDF (creator brief + alternate hooks + script), hook-variant DOCX/TXT, and a ZIP-all with one indexed folder per concept.
