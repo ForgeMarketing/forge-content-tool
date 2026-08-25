@@ -40,4 +40,6 @@ The Generate rail has a "Concept focus" input: empty = general brand ads (ICP ca
 
 ## Exports
 
-Per concept: client DOCX/PDF (script only), internal DOCX/PDF (creator brief + alternate hooks + script), hook-variant DOCX/TXT, and a ZIP-all with one indexed folder per concept.
+Per concept: client DOCX/PDF (script only), internal DOCX/PDF (creator brief + alternate hooks + script), **editor package DOCX/PDF** (versions to cut — one per hook variant — edit brief with pacing/captions/on-screen-text/b-roll/end-card, deliverable specs for mobile + desktop, brand notes, numbered script), hook-variant DOCX/TXT, and a ZIP-all with one indexed folder per concept.
+
+Fulfillment flow the tool serves: onboarding call → profile intake (website scan + files) → generate concepts → creator brief + scripts go to the spokespeople → raws come back → **editor package goes to the editor with the raws** → edited files delivered to the client.

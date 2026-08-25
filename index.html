@@ -671,12 +671,12 @@ const ANGLES = {
 // (script + 4 alt hooks + brief + why) runs ~1,800 output tokens even at the
 // shortest length — the brief and alt hooks dominate, not the script.
 const LENGTHS = [
-  { id:'15-30',   label:'15–30s',  words:[40,75],   tokensPerConcept:2600 },
-  { id:'30-45',   label:'30–45s',  words:[75,110],  tokensPerConcept:2800 },
-  { id:'45-60',   label:'45–60s',  words:[110,150], tokensPerConcept:3000 },
-  { id:'60-90',   label:'60–90s',  words:[150,225], tokensPerConcept:3400 },
-  { id:'90-120',  label:'90–120s', words:[225,300], tokensPerConcept:3800 },
-  { id:'120-180', label:'2–3 min', words:[300,450], tokensPerConcept:4400 },
+  { id:'15-30',   label:'15–30s',  words:[40,75],   tokensPerConcept:3300 },
+  { id:'30-45',   label:'30–45s',  words:[75,110],  tokensPerConcept:3500 },
+  { id:'45-60',   label:'45–60s',  words:[110,150], tokensPerConcept:3700 },
+  { id:'60-90',   label:'60–90s',  words:[150,225], tokensPerConcept:4100 },
+  { id:'90-120',  label:'90–120s', words:[225,300], tokensPerConcept:4500 },
+  { id:'120-180', label:'2–3 min', words:[300,450], tokensPerConcept:5100 },
 ];
 const DEFAULT_LENGTH = '90-120';
 
@@ -825,6 +825,7 @@ function normalizeGeneration(raw) {
       script: sTxt(c.script, ''),
       alt_hooks: Array.isArray(c.alt_hooks) ? c.alt_hooks.filter(h => h && sTxt(h.hook)) : [],
       brief: (c.brief && typeof c.brief === 'object' && !Array.isArray(c.brief)) ? c.brief : null,
+      edit_brief: (c.edit_brief && typeof c.edit_brief === 'object' && !Array.isArray(c.edit_brief)) ? c.edit_brief : null,
       why_it_converts: sTxt(c.why_it_converts, ''),
       legacy_directors_note: sTxt(c.directors_note, ''),
       focus: sTxt(c._focus || c.focus, ''),
@@ -1510,11 +1511,17 @@ OUTPUT — generate exactly ${qty} concepts. A concept is a complete sellable pa
   - "setting": where and how to film — location, framing, background.
   - "delivery": how to talk — energy, pacing, which lines to punch, where the [pause]s matter most.
   - "tone_notes": the emotional register — what this should feel like, and what to avoid.
+- "edit_brief": instructions for the video editor who will cut the raw footage of this script:
+  - "pacing": the cut rhythm — where to cut tight, where to let a line breathe, where to punch in for emphasis.
+  - "captions": caption treatment and the specific words or phrases to emphasize visually.
+  - "on_screen_text": the exact numbers, claims, or phrases to flash on screen, each tied to the script line it accompanies. Proof numbers ALWAYS get on-screen text.
+  - "broll": b-roll / cutaway suggestions tied to specific script beats — only footage realistically available to this business.
+  - "end_card": the end-card text and CTA for the final frame — mirror the script's bumper CTA.
 - "why_it_converts": one short paragraph on the direct-response logic behind this concept.
 Across concepts, vary the callout target, hook strategy, and proof emphasis — no two concepts may open the same way.
 
 Return ONLY this JSON object — no markdown, no code fences, no commentary before or after:
-{"concepts":[{"title":"...","hook":"...","script":"...","alt_hooks":[{"hook":"...","type":"...","why":"..."}],"brief":{"wardrobe":"...","setting":"...","delivery":"...","tone_notes":"..."},"why_it_converts":"..."}],"winner_pick":"Which concept has the highest conversion potential and why, one sentence."}`;
+{"concepts":[{"title":"...","hook":"...","script":"...","alt_hooks":[{"hook":"...","type":"...","why":"..."}],"brief":{"wardrobe":"...","setting":"...","delivery":"...","tone_notes":"..."},"edit_brief":{"pacing":"...","captions":"...","on_screen_text":"...","broll":"...","end_card":"..."},"why_it_converts":"..."}],"winner_pick":"Which concept has the highest conversion potential and why, one sentence."}`;
 }
 
 // ── GENERATE ──
@@ -1527,7 +1534,7 @@ async function generate(){
   const focus=getSelectedOffers();
   const qty=parseInt(getActive('qty-badges'))||2;
   const L=LENGTHS.find(l=>l.id===lengthId)||LENGTHS[4];
-  const maxTokens=Math.min(24000, 600 + qty * L.tokensPerConcept);
+  const maxTokens=Math.min(30000, 600 + qty * L.tokensPerConcept);
 
   document.getElementById('empty-state').style.display='none';
   document.getElementById('output-section').style.display='none';
@@ -1636,6 +1643,13 @@ function renderOutputDisplay(){
         ${briefCell('Tone',c.brief.tone_notes)}
       </div></div>`
       :(c.legacy_directors_note?`<div class="csec"><div class="csec-label">Director's note</div><div class="director-box">${esc(c.legacy_directors_note)}</div></div>`:'')}
+      ${c.edit_brief?`<div class="csec"><div class="csec-label">Editor brief</div><div class="brief-grid">
+        ${briefCell('Pacing',c.edit_brief.pacing)}
+        ${briefCell('Captions',c.edit_brief.captions)}
+        ${briefCell('On-screen text',c.edit_brief.on_screen_text)}
+        ${briefCell('B-roll',c.edit_brief.broll)}
+        ${briefCell('End card',c.edit_brief.end_card)}
+      </div></div>`:''}
       ${c.why_it_converts?`<div class="csec"><div class="csec-label">Why this converts</div><div class="insight-box">${esc(c.why_it_converts)}</div></div>`:''}
       <div class="dl-row">
         <div class="dl-group"><div class="dl-label">Client doc</div><div class="dl-btns">
@@ -1646,6 +1660,10 @@ function renderOutputDisplay(){
           <button class="dl-btn internal" data-action="dl" data-kind="internal-docx" data-cidx="${i}">Word</button>
           <button class="dl-btn internal" data-action="dl" data-kind="internal-pdf" data-cidx="${i}">PDF</button>
         </div></div>
+        ${c.edit_brief?`<div class="dl-group"><div class="dl-label">Editor package</div><div class="dl-btns">
+          <button class="dl-btn" data-action="dl" data-kind="editor-docx" data-cidx="${i}">Word</button>
+          <button class="dl-btn" data-action="dl" data-kind="editor-pdf" data-cidx="${i}">PDF</button>
+        </div></div>`:''}
         ${hooks.length>1?`<div class="dl-group"><div class="dl-label">Hook variants</div><div class="dl-btns">
           <button class="dl-btn" data-action="dl" data-kind="hooks-docx" data-cidx="${i}">Word</button>
           <button class="dl-btn" data-action="dl" data-kind="hooks-txt" data-cidx="${i}">Text</button>
@@ -1928,6 +1946,137 @@ function buildInternalPdfBlob(concept,client){
   return doc.output('blob');
 }
 
+// ── EDITOR PACKAGE BUILDERS ──
+// The handoff doc that travels with the raw footage to the editor: which
+// versions to cut, the edit brief, deliverable specs, brand notes, and the
+// numbered script. Mirrors the deck promise: multiple hook variations per
+// concept, mobile + desktop delivery, captions burned in.
+const EDITOR_RAWS_NOTE = 'Raws may be pro-creator footage (VSL Engine) or client-filmed phone footage (Reverse VSL). Pick the strongest take per line, clean the audio, stabilize handheld footage as needed.';
+const EDITOR_DELIVERABLES = 'Deliver mobile 9:16 vertical AND desktop/feed format. Captions burned in on every version. Keep captions and on-screen text inside platform safe zones. One file per hook version, per format.';
+
+function editorVersionLines(concept){
+  const hooks=conceptHooks(concept);
+  return hooks.map((h,i)=>({
+    label:'V'+(i+1)+(i===0?' — PRIMARY':' — '+(sTxt(h.type)||'ALT '+i).toUpperCase()),
+    text:sTxt(h.hook,'(missing hook)'),
+    note:i===0?'The full script as written.':'Identical edit — only the opening line(s) swap to this hook.'
+  }));
+}
+
+function buildEditorDocxBlob(concept,client,idx){
+  return new Promise((resolve,reject)=>{
+    if(!window.docx){reject(new Error('Word library not loaded'));return;}
+    const {Document,Paragraph,TextRun,AlignmentType,BorderStyle,Packer}=window.docx;
+    const date=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+    const A='C9993A';
+    const secTitle=t=>new Paragraph({children:[new TextRun({text:t,bold:true,size:16,color:A,font:'Arial'})],spacing:{before:200,after:100}});
+    const body=(t,opts)=>new Paragraph({children:[new TextRun({text:t,size:20,font:'Arial',color:'333330',...(opts||{})})],spacing:{after:80}});
+    const eb=concept.edit_brief||{};
+    const base=conceptBase(concept,idx);
+    const children=[
+      new Paragraph({children:[new TextRun({text:'FORGE MARKETING — EDITOR PACKAGE',bold:true,size:20,color:A,font:'Arial'})],spacing:{after:40}}),
+      new Paragraph({children:[new TextRun({text:sTxt(concept.title,'Untitled concept'),bold:true,size:28,color:'1a1a18',font:'Arial'})],spacing:{after:60}}),
+      new Paragraph({children:[new TextRun({text:'Client: '+(client.bizname||'Client')+'  ·  '+date,size:18,color:'666660',font:'Arial'})],border:{bottom:{color:A,style:BorderStyle.SINGLE,size:4}},spacing:{after:280}}),
+      secTitle('RAW FOOTAGE'),
+      body(EDITOR_RAWS_NOTE,{italics:true,color:'555550'}),
+      secTitle('VERSIONS TO CUT — one edit per hook, label files '+base+'-v1 … -v'+editorVersionLines(concept).length),
+    ];
+    editorVersionLines(concept).forEach(v=>{
+      children.push(new Paragraph({children:[new TextRun({text:v.label,bold:true,size:16,color:A,font:'Arial'})],spacing:{before:120,after:40}}));
+      children.push(new Paragraph({children:[new TextRun({text:v.text,bold:true,size:22,font:'Arial',color:'1a1a18'})],border:{left:{color:A,style:BorderStyle.SINGLE,size:10}},indent:{left:360},spacing:{after:40}}));
+      children.push(body(v.note,{italics:true,size:16,color:'888880'}));
+    });
+    children.push(secTitle('EDIT BRIEF'));
+    [['Pacing',eb.pacing],['Captions',eb.captions],['On-screen text',eb.on_screen_text],['B-roll',eb.broll],['End card',eb.end_card]].forEach(([label,val])=>{
+      children.push(new Paragraph({children:[
+        new TextRun({text:label+':  ',bold:true,size:20,font:'Arial',color:'1a1a18'}),
+        new TextRun({text:sTxt(val,'—'),size:20,font:'Arial',color:'333330'})
+      ],spacing:{after:100},indent:{left:200}}));
+    });
+    children.push(secTitle('DELIVERABLES'));
+    children.push(body(EDITOR_DELIVERABLES));
+    if((client.brand||'').trim()){
+      children.push(secTitle('BRAND'));
+      children.push(body(client.brand));
+    }
+    children.push(secTitle('FULL SCRIPT (V1)'));
+    let n=0;
+    (concept.script||'').split('\n').forEach(line=>{
+      if(!line.trim()){children.push(new Paragraph({spacing:{after:60}}));return;}
+      n++;
+      children.push(new Paragraph({children:[
+        new TextRun({text:String(n).padStart(2,'0')+'  ',size:16,font:'Courier New',color:'aaaaa4'}),
+        new TextRun({text:line,size:22,font:'Arial',italics:/^\[/.test(line.trim()),color:/^\[/.test(line.trim())?'888880':'0a0a09'})
+      ],spacing:{after:90}}));
+    });
+    children.push(new Paragraph({spacing:{before:400},border:{top:{color:A,style:BorderStyle.SINGLE,size:4}}}));
+    children.push(new Paragraph({children:[new TextRun({text:'INTERNAL USE ONLY — Forge Marketing',size:16,color:'888880',font:'Arial',bold:true})],alignment:AlignmentType.CENTER,spacing:{before:120}}));
+    Packer.toBlob(new Document({sections:[{properties:{},children}]})).then(resolve).catch(reject);
+  });
+}
+
+function buildEditorPdfBlob(concept,client,idx){
+  const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:'pt',format:'letter'});
+  const W=doc.internal.pageSize.getWidth(),PH=doc.internal.pageSize.getHeight(),margin=56;let y=50;
+  const chk=n=>{if(y+n>PH-60){doc.addPage();y=50;}};
+  const A=[201,153,58];
+  const secTitle=t=>{chk(30);doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(...A);doc.text(t,margin,y);y+=14;};
+  const wrap=(t,size,style,color,indent)=>{doc.setFont('helvetica',style||'normal');doc.setFontSize(size);doc.setTextColor(...(color||[40,40,38]));const ls=doc.splitTextToSize(t,W-margin*2-(indent||0));chk(ls.length*(size+2)+6);doc.text(ls,margin+(indent||0),y);y+=ls.length*(size+2)+6;};
+  const eb=concept.edit_brief||{};
+  const base=conceptBase(concept,idx);
+  doc.setFillColor(...A);doc.rect(margin,y,W-margin*2,3,'F');y+=16;
+  doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...A);
+  doc.text('FORGE MARKETING — EDITOR PACKAGE',margin,y);y+=20;
+  doc.setFont('helvetica','bold');doc.setFontSize(18);doc.setTextColor(20,20,18);
+  doc.text(sTxt(concept.title,'Untitled concept'),margin,y);y+=18;
+  doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(100,100,96);
+  doc.text((client.bizname||'Client')+' · '+new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}),margin,y);
+  y+=6;doc.setFillColor(...A);doc.rect(margin,y,W-margin*2,1,'F');y+=24;
+  secTitle('RAW FOOTAGE');
+  wrap(EDITOR_RAWS_NOTE,9,'italic',[100,100,96]);
+  secTitle('VERSIONS TO CUT — one edit per hook, label files '+base+'-v1 … -v'+editorVersionLines(concept).length);
+  editorVersionLines(concept).forEach(v=>{
+    chk(46);
+    doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(...A);
+    doc.text(v.label,margin,y);y+=11;
+    const hl=doc.splitTextToSize(v.text,W-margin*2-14);
+    doc.setFillColor(...A);doc.rect(margin,y-7,3,Math.max(14,hl.length*13),'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(20,20,18);
+    doc.text(hl,margin+10,y+2);y+=Math.max(18,hl.length*13)+4;
+    wrap(v.note,8,'italic',[130,130,124]);
+  });
+  secTitle('EDIT BRIEF');
+  [['Pacing',eb.pacing],['Captions',eb.captions],['On-screen text',eb.on_screen_text],['B-roll',eb.broll],['End card',eb.end_card]].forEach(([label,val])=>{
+    chk(30);
+    doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(30,30,28);
+    doc.text(label,margin,y);
+    doc.setFont('helvetica','normal');doc.setTextColor(60,60,56);
+    const ls=doc.splitTextToSize(sTxt(val,'—'),W-margin*2-96);
+    doc.text(ls,margin+90,y);y+=Math.max(14,ls.length*13)+8;
+  });
+  secTitle('DELIVERABLES');
+  wrap(EDITOR_DELIVERABLES,10);
+  if((client.brand||'').trim()){ secTitle('BRAND'); wrap(client.brand,10); }
+  secTitle('FULL SCRIPT (V1)');
+  let n=0;
+  (concept.script||'').split('\n').forEach(line=>{
+    if(!line.trim()){y+=6;return;}
+    n++;
+    const isNote=/^\[/.test(line.trim());
+    chk(20);
+    doc.setFont('courier','normal');doc.setFontSize(8);doc.setTextColor(170,170,164);
+    doc.text(String(n).padStart(2,'0'),margin,y);
+    doc.setFont('helvetica',isNote?'italic':'normal');doc.setFontSize(isNote?9:11);
+    doc.setTextColor(isNote?120:10,isNote?120:10,isNote?116:8);
+    const ls=doc.splitTextToSize(line,W-margin*2-24);
+    doc.text(ls,margin+22,y);y+=ls.length*(isNote?11:14)+4;
+  });
+  doc.setFillColor(...A);doc.rect(margin,PH-40,W-margin*2,1,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(100,100,96);
+  doc.text('INTERNAL USE ONLY — Forge Marketing',W/2,PH-26,{align:'center'});
+  return doc.output('blob');
+}
+
 // ── HOOK LIST BLOB BUILDERS (per-concept variants + legacy bank) ──
 function buildHooksDocxBlob(hooks,client,subtitle){
   return new Promise((resolve,reject)=>{
@@ -2014,6 +2163,8 @@ function dlConcept(kind,idx){
     else if(kind==='client-pdf') saveBlob(buildClientPdfBlob(c,client),base+'-client.pdf');
     else if(kind==='internal-docx') buildInternalDocxBlob(c,client).then(b=>saveBlob(b,base+'-internal.docx')).catch(fail);
     else if(kind==='internal-pdf') saveBlob(buildInternalPdfBlob(c,client),base+'-internal.pdf');
+    else if(kind==='editor-docx') buildEditorDocxBlob(c,client,idx).then(b=>saveBlob(b,base+'-editor.docx')).catch(fail);
+    else if(kind==='editor-pdf') saveBlob(buildEditorPdfBlob(c,client,idx),base+'-editor.pdf');
     else if(kind==='hooks-docx') buildHooksDocxBlob(conceptHooks(c),client,'Hook Variants — '+sTxt(c.title,'Concept '+(idx+1))).then(b=>saveBlob(b,base+'-hooks.docx')).catch(fail);
     else if(kind==='hooks-txt') saveBlob(buildHooksTextBlob(conceptHooks(c),client,'Hook Variants — '+sTxt(c.title,'Concept '+(idx+1))),base+'-hooks.txt');
   }catch(err){fail(err);}
@@ -2066,6 +2217,10 @@ async function downloadAllAsZip(type){
         folder.file(base+'-internal.pdf',buildInternalPdfBlob(c,client));
         const hooks=conceptHooks(c);
         if(hooks.length>1) folder.file(base+'-hooks.txt',buildHooksTextBlob(hooks,client,'Hook Variants — '+sTxt(c.title,'Concept '+(i+1))));
+        if(c.edit_brief){
+          folder.file(base+'-editor.docx',await buildEditorDocxBlob(c,client,i));
+          folder.file(base+'-editor.pdf',buildEditorPdfBlob(c,client,i));
+        }
       }
     }catch(err){ failures.push(label+' — '+err.message); }
   });
