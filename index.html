@@ -1969,7 +1969,7 @@ async function downloadAllAsZip(type){
 
 // ── WEBSITE SCAN ──
 // Fetching other sites needs a server (browser CORS) — the worker's
-// {action:'fetch_site'} mode does it (see worker/fetch-site-snippet.js), then
+// {action:'fetch_site'} mode does it (see worker/forge-api-proxy.js), then
 // the pages ride the exact same extraction pipeline as uploaded files.
 async function scanWebsite() {
   let url = (document.getElementById('site-url').value || '').trim();
@@ -2000,7 +2000,7 @@ async function scanWebsite() {
   } catch(err) {
     progressEl.style.display = 'none';
     const msg = /prompt/i.test(err.message)
-      ? 'The worker does not support website scanning yet — paste worker/fetch-site-snippet.js into the Cloudflare worker first.'
+      ? 'The worker does not support website scanning yet — deploy worker/forge-api-proxy.js to the Cloudflare worker first.'
       : 'Site scan failed: ' + err.message;
     toast(msg, 'error');
   } finally {

@@ -32,7 +32,7 @@ One generation = 1–5 concepts. Each concept is what Forge sells:
 
 The profile's "AI Auto-Fill" section accepts a client website URL. The app POSTs `{action:'fetch_site', url}` to the worker, which crawls the homepage plus up to 4 service/testimonial/about-style subpages and returns stripped page text; the pages then run through the same extraction prompt and review panel as uploaded files. The extraction prioritizes verbatim social proof (→ proof1/proof2/voice) and the service list (→ appended to the "Anything Else" field as `Services offered:`).
 
-**Worker prerequisite:** the fetch-site mode must be pasted into the Cloudflare worker — see [worker/fetch-site-snippet.js](worker/fetch-site-snippet.js) for the code and install steps (it also documents adding localhost to the CORS allowlist for local dev).
+**Worker prerequisite:** the worker must include the fetch-site mode. The complete worker source lives at [worker/forge-api-proxy.js](worker/forge-api-proxy.js) — paste the whole file over the worker in the Cloudflare dashboard and deploy (the `ANTHROPIC_API_KEY` secret is set in worker Settings, never in the file). It also allows `http://localhost:8137` for local dev.
 
 ## Concept focus
 
