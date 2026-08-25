@@ -395,6 +395,7 @@ body:not(.in-ws) .toast-wrap{bottom:calc(20px + var(--safe-bottom))}
           <div class="field"><label>Point of Contact</label><input type="text" id="f-contact" placeholder="e.g. Joe Ellis" autocomplete="name"></div>
         </div>
         <div class="field"><label>Core Offer</label><textarea id="f-offer" placeholder="Specific transformation, deliverable, and timeframe. e.g. We help home service businesses generate 30+ qualified leads/month in 90 days or we work for free."></textarea></div>
+        <div class="field"><label>Services / Offers List</label><textarea id="f-services" placeholder="One per line — each becomes a selectable offer chip on the Generate tab, for anchoring a batch on one offer or split-testing several.&#10;Kitchen remodels&#10;Bathroom renovations&#10;Whole-home additions"></textarea></div>
         <div class="field-row">
           <div class="field"><label>Price Point</label><input type="text" id="f-price" placeholder="e.g. $3,500/mo retainer"></div>
           <div class="field"><label>Offer Age</label><input type="text" id="f-offer-age" placeholder="e.g. 18 months"></div>
@@ -1027,7 +1028,8 @@ function buildProfileSnapshot() {
     proof1:v('f-proof1'),proof2:v('f-proof2'),'clients-total':v('f-clients-total'),credibility:v('f-credibility'),
     competitors:v('f-competitors'),differentiator:v('f-differentiator'),'past-ads':v('f-past-ads'),'best-segments':v('f-best-segments'),
     platforms:getChecked('platforms'),spend:v('f-spend'),cpl:v('f-cpl'),funnel:v('f-funnel'),metrics:v('f-metrics'),'winning-ads':v('f-winning-ads'),
-    brand:v('f-brand'),inspo:v('f-inspo'),limits:v('f-limits'),talent:v('f-talent'),misc:v('f-misc')
+    brand:v('f-brand'),inspo:v('f-inspo'),limits:v('f-limits'),talent:v('f-talent'),
+    misc:joinMiscServices(v('f-misc'), v('f-services'))
   };
 }
 
@@ -1228,7 +1230,9 @@ function fillForm(c){
   const s=(id,val)=>{const el=document.getElementById(id);if(el)el.value=val||'';};
   ['bizname','contact','offer','price','offer-age','geo','icp','before','after','objections','skepticism','voice',
    'proof1','proof2','clients-total','credibility','competitors','differentiator','past-ads','best-segments',
-   'spend','cpl','funnel','metrics','winning-ads','brand','inspo','limits','talent','misc'].forEach(k=>s('f-'+k,c[k]||c[k.replace(/-/g,'_')]||''));
+   'spend','cpl','funnel','metrics','winning-ads','brand','inspo','limits','talent'].forEach(k=>s('f-'+k,c[k]||c[k.replace(/-/g,'_')]||''));
+  const sm=splitMiscServices(c.misc||c['misc']||'');
+  s('f-misc',sm.notes); s('f-services',sm.services);
   ['close-type','platforms'].forEach(gId=>{
     const vals=c[gId]||[];
     document.querySelectorAll('#'+gId+' .check-opt').forEach(opt=>{
@@ -1322,10 +1326,26 @@ let customOffers = {};   // { clientKey: [strings] } — session only
 
 function offerClientKey(){ return activeClientId || '_new'; }
 
+// The services list is stored INSIDE the misc column as a "Services offered:"
+// block (no dedicated DB column exists) — the UI splits it into its own
+// Section 01 field on load and rejoins it on save, so the storage detail is
+// invisible and old rows + website scans stay compatible.
+function splitMiscServices(raw){
+  raw=String(raw||'');
+  const m=raw.match(/(?:^|\n+)Services offered:\n([\s\S]*?)(?=\n\n|$)/);
+  if(!m) return {notes:raw.trim(), services:''};
+  const services=m[1].trim();
+  const notes=(raw.slice(0,m.index)+raw.slice(m.index+m[0].length)).trim();
+  return {notes, services};
+}
+function joinMiscServices(notes,services){
+  notes=(notes||'').trim(); services=(services||'').trim();
+  if(!services) return notes;
+  return (notes?notes+'\n\n':'')+'Services offered:\n'+services;
+}
 function parseServicesFromMisc(misc){
-  const m = String(misc||'').match(/Services offered:\n([\s\S]*?)(?:\n\n|$)/);
-  if(!m) return [];
-  return m[1].split('\n').map(x=>x.trim()).filter(Boolean).slice(0,20);
+  const sv=splitMiscServices(misc).services;
+  return sv?sv.split('\n').map(x=>x.trim()).filter(Boolean).slice(0,20):[];
 }
 
 function offerLabel(v){ return v===CORE_OFFER ? 'Core offer' : v; }
@@ -2482,7 +2502,7 @@ function showExtractionReview(extracted) {
     competitors:'Competitors', differentiator:'Main Differentiator', spend:'Monthly Ad Spend',
     funnel:'Funnel After Click', metrics:'Success Metrics', brand:'Brand Guidelines',
     inspo:'Creative Inspiration', limits:'Hard Limits', talent:'Spokesperson / Talent', misc:'Other Notes',
-    services:'Services / Offers Found (saved into Anything Else)'
+    services:'Services / Offers List'
   };
 
   const filled = Object.keys(extracted).filter(k => coerceText(extracted[k]).trim());
@@ -2522,16 +2542,9 @@ async function applyExtraction() {
     if(!extractEl) return;
     const val = extractEl.value.trim();
     if(!val) return;
-    if(k === 'services') {
-      // no dedicated column exists — file the service list under "Anything Else",
-      // replacing any earlier Services block (the model returns the full list)
-      const misc = document.getElementById('f-misc');
-      const block = 'Services offered:\n' + val;
-      const kept = misc.value.split(/\n?\nServices offered:\n[\s\S]*$/)[0].trim();
-      misc.value = kept ? (kept + '\n\n' + block) : block;
-      applied++;
-      return;
-    }
+    // 'services' maps to f-services like any other field; the model returns
+    // the complete merged list, so a plain replace is correct.
+
     const formEl = document.getElementById('f-'+k);
     if(formEl) { formEl.value = val; applied++; }
   });
