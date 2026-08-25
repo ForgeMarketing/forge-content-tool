@@ -671,40 +671,41 @@ const ANGLES = {
 // (script + 4 alt hooks + brief + why) runs ~1,800 output tokens even at the
 // shortest length — the brief and alt hooks dominate, not the script.
 const LENGTHS = [
-  { id:'15-30',   label:'15–30s',  words:[40,75],   tokensPerConcept:2200 },
-  { id:'30-45',   label:'30–45s',  words:[75,110],  tokensPerConcept:2400 },
-  { id:'45-60',   label:'45–60s',  words:[110,150], tokensPerConcept:2600 },
-  { id:'60-90',   label:'60–90s',  words:[150,225], tokensPerConcept:2900 },
-  { id:'90-120',  label:'90–120s', words:[225,300], tokensPerConcept:3200 },
-  { id:'120-180', label:'2–3 min', words:[300,450], tokensPerConcept:3800 },
+  { id:'15-30',   label:'15–30s',  words:[40,75],   tokensPerConcept:2600 },
+  { id:'30-45',   label:'30–45s',  words:[75,110],  tokensPerConcept:2800 },
+  { id:'45-60',   label:'45–60s',  words:[110,150], tokensPerConcept:3000 },
+  { id:'60-90',   label:'60–90s',  words:[150,225], tokensPerConcept:3400 },
+  { id:'90-120',  label:'90–120s', words:[225,300], tokensPerConcept:3800 },
+  { id:'120-180', label:'2–3 min', words:[300,450], tokensPerConcept:4400 },
 ];
 const DEFAULT_LENGTH = '90-120';
 
 // ── EXEMPLARS ──
-// Two fictional scripts in the Forge house structure. Swap in real winning
-// scripts here any time — the prompt tells the model to match rhythm and
-// structure but never reuse the wording or the fictional clients' facts.
+// Anonymized versions of real Forge winners — client names, brands, and exact
+// figures replaced with fictional stand-ins (the prompt forbids reusing any
+// exemplar facts, so only the structure and rhythm carry over). Three length
+// bands; the model is told to match the band closest to the target length.
 const EXEMPLARS = [
-`If you run a roofing company doing 50-plus jobs a year — this is for you. [pause]
-You're pouring money into ads, and the leads still show up broke, flaky, or not at all.
-We fix that. Forge builds your whole video ad system — scripts, talent, filming, editing, launch — and books you 30-plus qualified estimates a month within 90 days, or you don't pay us. [pause]
-Here's why that's not a crazy claim.
-Last spring we took a roofing company from 11 leads a month to 74. Same crew. Same trucks. Different ads. Cost per estimate went from $212 down to $38 — in six weeks.
-Then an HVAC shop in Phoenix: 212 booked calls in one quarter. The owner's words, not ours: "We had to hire two more techs just to keep up." [pause]
-That's what happens when your ads stop sounding like ads and start sounding like you.
-So — if you're a roofer, or any home service business, done paying for leads that go nowhere... we solve exactly that.
-Book your call now. Takes 30 seconds.`,
-`37 new patients in 41 days. [pause]
-That's what one med spa owner got from a single 45-second video.
-If you own a med spa and your calendar has gaps — listen.
-We build your entire patient-booking campaign — the script, the filming, the targeting, all of it — and fill your book inside 60 days. Flat fee. No retainer black hole. [pause]
-Here's the part nobody tells you.
-She'd already been burned by two agencies before us. What changed wasn't the budget. It was the ad.
-It didn't talk about lasers or packages — it said the exact thing her patients say: "I just want to look like me again. Less tired."
-That one line outperformed a $5,000 funnel. [pause]
-Since then: 214 booked appointments across three locations, and her cost per booking is down 61%.
-If you run a med spa — or any appointment-based business — staring at empty slots... that's exactly what we fix.
-Tap below, book your 15-minute demo. That's it.`
+{ label:'~60-90 seconds',
+text:`Service-based business owners — I hate to step on toes, but spending $5,000 a month on Meta with terrible ad creatives is like putting premium gas in a car with a blown engine. [pause] It'll give you some juice, but it's not going anywhere.
+And I know that, because we've been fixing bad ad creative for hundreds of seven- and eight-figure businesses across dozens of niches — and we didn't need to touch their offer, their funnel, or their pricing. We swapped their creatives with ours, and performance took off.
+So here's what we'll do for you: we'll script, film, edit, and deliver your next 20 ad creatives in seven days, using proven creators and scripts backed by millions in ad data.
+That's what we do. Here's what clients get. One agency owner generated $390,000 in 28 days and just scaled past seven figures a month. Another booked over 700 qualified calls directly from our ads. [pause] And I could give you dozens more.
+So if you're a service-based business owner spending over $5,000 a month on ads, and your calendar isn't as full as it should be — tap below, and we'll show you how we'll build your next 20 winning creatives in the next seven days.`},
+{ label:'~90-120 seconds',
+text:`Service-based business owners: there are two kinds of ads you run on Meta. An ad that blends in, gets ignored, and costs more than it makes you — or an ad that makes someone stop mid-scroll, watch the whole thing, and tap the button because it felt like it was made specifically for them. [pause] We do the second kind.
+We've been behind the curtain of hundreds of seven- and eight-figure ad accounts across dozens of niches — we know what makes your prospects stop, click, and take action.
+So here's what we'll do for you. We'll script, film, edit, and deliver your next 20 winning ad creatives in seven days, using proven creators and ad scripts backed by tens of millions in ad data.
+Just like we did for a roofing owner who generated $520,000 in 28 days. For a clinic that brought in $260,000 in 26 days. For an agency that booked over 700 qualified calls. None of them rewrote their offer, rebuilt their funnel, or picked up a camera. They plugged into our creative infrastructure, hit publish, and their calendar filled up. [pause]
+So if you're a service-based business owner spending over $5,000 a month on ads, and you're tired of watching your budget go up and your ROAS go down — tap below, book a call, and we'll show you how this works for your business in the next seven days.`},
+{ label:'2-3 minutes (full mechanism)',
+text:`If you're a service-based business owner spending over $15,000 a month on ads, and you aren't booking as many calls as you should be given what you're spending — here's what we'll do for you. [pause]
+We'll script, film, edit, and deliver your next 20 winning ad creatives in the next seven days, start to finish, 100% done for you — using proven creators who speak on your behalf and position you as the authority in your space, so you book more calls at a lower cost.
+If that's the outcome you're after, tap the button below, book a call, and we'll show you exactly how it works. [pause] Now — if you're wondering whether this will actually work for your business, look at what it did for a few hundred other seven- and eight-figure owners across dozens of niches.
+One agency owner booked over 700 qualified calls and generated seven figures from our ads. A home-improvement company did $410,000 in 30 days at a 14x ROAS. A consultant added $28,000 in new monthly recurring revenue in her first 90 days. [pause] And the craziest part? We didn't change a thing about their offer, their targeting, or their pricing. We swapped out their creatives and doubled down on the winners from each batch. That's it.
+Here's why that works — and why you haven't been able to fill your calendar even though you keep testing new angles. There's nothing wrong with testing creatives. But most teams test off the metrics: the winning ad's numbers become the blueprint for the next round. The problem is, metrics can only tell you THAT an ad performed — never WHY. [pause] If you can't reverse-engineer why the winner crushed while the others flopped, the winner fatigues, you scramble for new angles, and you pay again for testing you've already done.
+So instead, we run a repeatable feedback loop: isolate why the top performer won, reverse-engineer it, and build the next 20 ads on that winner's blueprint — so every round converts better than the last. Think of it like buying a lottery ticket, except you already know the winning numbers. [pause]
+So — if you want your next 20 winning ad creatives scripted, filmed, edited, and delivered in the next seven days, inside a system built to keep producing winners: tap below, book a call, and we'll see you on the other side.`}
 ];
 
 // ── SUPABASE CLIENT ──
@@ -1455,25 +1456,30 @@ VOICE & STYLE — NON-NEGOTIABLE:
 - Open mid-thought or with a direct callout. Never "hey guys," never a slow intro.
 - Short declarative sentences. Fragments are fine. Rhythm matters.
 - Contractions always. Casual but authoritative.
+- Numbers beat adjectives, always. "$390k in 28 days" outperforms "amazing results." Specific counts, timeframes, and multiples wherever the profile provides them.
+- Analogies are welcome pattern interrupts ("like putting premium gas in a car with a blown engine").
+- The "craziest part" reframe builds anticipation right before or after proof ("and the craziest part is — we didn't change a thing about their offer").
 - Write [pause] where the spokesperson should let a line land.
 - Use the client's exact customer language wherever it is provided.
 - NEVER fabricate proof, numbers, or testimonials — only use what is explicitly provided below.
 - Respect every hard limit absolutely.
 
 THE FORGE STRUCTURE — every script follows this exact arc, in order:
-1. CALLOUT (0-3s): Name the target business type and/or ideal customer directly. "If you run a [X]..." / "[ICP]s —". The first words filter for exactly who this is for.
-2. HOOK — PAIN or PROOF (3-10s): Immediately hit their sharpest pain point, lead with the single strongest proof number, or pattern-interrupt. This is what stops the scroll.
-3. FULL OFFER, EARLY (by 5-15s): State the complete offer — deliverable, outcome, timeframe, guarantee if there is one. Do not tease it. Do not save it for later. Give the whole offer up front so people who are ready can act now.
-4. SOCIAL PROOF STACK (the long middle): Specific results with numbers, timeframes, and names or initials. Stack proof at peak skepticism. This is the longest section of the script.
-5. BUMPER CTA (the close): Mirror the callout to bookend the script. "If you're a [business type] or [ICP] dealing with [XYZ] — we solve [XYZ]. Book now." One clear action, low friction.
+1. CALLOUT (0-3s): Name the target business type and/or ideal customer directly — and qualify them when the profile supports it: "If you're a [X] spending over [$Y] a month on [Z], and you aren't [outcome] given what you're spending —". The first words filter for exactly who this is for.
+2. HOOK — PAIN or PROOF (3-10s): Immediately hit their sharpest pain point, lead with the single strongest proof number, or pattern-interrupt (an analogy works). This is what stops the scroll.
+3. FULL OFFER, EARLY (by 5-15s): State the complete offer — a NUMBERED deliverable with a timeframe wherever possible ("your next 20 winning ad creatives in the next 7 days, 100% done for you"). Do not tease it. Do not save it for later.
+4. EARLY CTA FORK (right after the offer, for 45s+ scripts): "So if that's all you needed to hear — [action] below. But if you're someone who needs to see proof that this actually works, take a look at this." People who are ready act now; skeptics get escorted into the proof.
+5. SOCIAL PROOF STACK (the long middle): Rapid-fire specific results — name or role + number + timeframe (+ multiple where provided), one per sentence, machine-gun rhythm. Then, when the profile supports it, cap the stack with the isolation reframe: "and the craziest part is, they didn't change a thing about [everything else] — all we did was [the client's mechanism] — which proves nothing else was broken."
+6. MECHANISM (60s+ scripts, when depth fits the length): why the usual approach fails for these buyers, then the client's specific process as the fix, sealed with one concrete analogy that makes it feel inevitable.
+7. BUMPER CTA (the close): Restate the full offer nearly verbatim and mirror the callout to bookend the script: "So again — if you're a [ICP] and you want [numbered deliverable + timeframe], tap below, [action], and we'll show you how we'll make that happen." One clear action, low friction.
+For short lengths (under 45s), compress the same arc: callout → hook → offer → 2-3 proof shots → bumper. Never drop the callout or the bumper.
 
-EXEMPLARS — these two scripts are the target style. Match their rhythm, sentence density, and structure. Do NOT reuse their wording, their industries' specifics, or their clients' facts.
-<exemplar_1>
-${EXEMPLARS[0]}
-</exemplar_1>
-<exemplar_2>
-${EXEMPLARS[1]}
-</exemplar_2>
+OFFER-TIER RULES — match the ad to what's being sold:
+- VOLUME / LEAD-GEN offers (home services, agencies, clinics, anything with a fast sales cycle): qualify hard in the callout (spend, size, situation), make the math visceral, stack proof aggressively.
+- PREMIUM / LONG-CONSIDERATION offers (luxury, custom builds, high-ticket B2B, 6-18 month decisions): NEVER use dollar discounts, manufactured urgency, or countdown pressure — they cheapen the brand and repel this buyer. No speed claims where craftsmanship is the value. Sell consultative value instead: expertise, tenure ("30 years of building taught me..."), counter-positioning ("I'll talk you out of it before I talk you into it"), and real deadlines only (an event, a release — never invented scarcity). Filtering OUT bad-fit buyers is a feature: it is fine for the ad to say who this is not for.
+
+EXEMPLARS — these are real Forge winners (details anonymized). They ARE the target style: match their rhythm, sentence density, and structure, leaning on the exemplar closest to your target length. Do NOT reuse their wording, their industries' specifics, or their clients' numbers — every fact in your scripts comes from the CLIENT PROFILE below and nowhere else.
+${EXEMPLARS.map((e,i)=>`<exemplar_${i+1} length="${e.label}">\n${e.text}\n</exemplar_${i+1}>`).join('\n')}
 
 CLIENT PROFILE:
 ${profile}
