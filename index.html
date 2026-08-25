@@ -476,7 +476,7 @@ body:not(.in-ws) .toast-wrap{bottom:calc(20px + var(--safe-bottom))}
         </div>
         <div class="extract-review" id="extract-review">
           <div class="extract-review-title">AI extracted the following — review before applying</div>
-          <div class="extract-review-sub">Edit anything that looks wrong, then hit Apply to Fields. Only filled fields will overwrite existing profile data.</div>
+          <div class="extract-review-sub">Merged with what's already on file — new material extends existing fields instead of replacing them, and untouched fields aren't listed. Edit anything that looks wrong, then hit Apply to Fields. Applying to a saved client snapshots a version first, so it's always restorable.</div>
           <div id="extract-fields"></div>
           <div class="extract-actions">
             <button class="btn btn-primary" id="apply-extract-btn" onclick="applyExtraction()">Apply to Fields</button>
@@ -2017,7 +2017,7 @@ async function runSiteExtraction(pages) {
     ok: true,
     text: (p.text || '').slice(0, MAX_CHARS_PER_FILE)
   }));
-  const data = await callWorker({ prompt: buildExtractionPrompt(fileContents), max_tokens: 6000 });
+  const data = await callWorker({ prompt: buildExtractionPrompt(fileContents, buildProfileSnapshot()), max_tokens: 8000 });
   let extracted = {};
   try {
     extracted = parseWorkerJSON(data) || {};
@@ -2118,7 +2118,7 @@ async function processFiles(files) {
     let data = null;
     if(readable.length) {
       progressText.textContent = `Sending ${readable.length} file${readable.length!==1?'s':''} to Claude for extraction...`;
-      data = await callWorker({ prompt: buildExtractionPrompt(fileContents), max_tokens: 6000 });
+      data = await callWorker({ prompt: buildExtractionPrompt(fileContents, buildProfileSnapshot()), max_tokens: 8000 });
     }
 
     progressBar.style.width = '75%';
@@ -2291,9 +2291,28 @@ async function readFileForClaude(file) {
   }
 }
 
-function buildExtractionPrompt(fileContents) {
+function buildExtractionPrompt(fileContents, currentProfile) {
   const readable = fileContents.filter(f => f.ok);
   const skipped = fileContents.filter(f => !f.ok);
+
+  // Current profile rides along so later uploads ADD context instead of
+  // clobbering earlier work — Claude merges and omits what hasn't changed.
+  let currentBlock = '';
+  if (currentProfile) {
+    const lines = Object.keys(currentProfile)
+      .filter(k => coerceText(currentProfile[k]).trim())
+      .map(k => k + ': ' + coerceText(currentProfile[k]));
+    if (lines.length) currentBlock = `
+
+CURRENT PROFILE (already on file — do not discard this work):
+${lines.join('\n')}
+
+MERGE RULES:
+- For each field: if the new material adds NOTHING beyond what the current profile already says, OMIT that key entirely — the existing value will be kept as-is.
+- If the new material ADDS information, return the MERGED value: existing content plus the new findings, combined and deduplicated. Never drop existing specifics (numbers, names, quotes) that the new material doesn't contradict.
+- Replace outright only where the new material clearly supersedes the old (e.g. corrected pricing, renamed offer).
+- For "services": if you return it, return the COMPLETE updated list (existing services plus any new ones).`;
+  }
 
   let fileDescriptions = readable.map(f =>
     `[FILE: ${f.name}]\n${f.text.substring(0, MAX_CHARS_PER_FILE)}`
@@ -2308,7 +2327,7 @@ function buildExtractionPrompt(fileContents) {
 PRIORITIES:
 1. SOCIAL PROOF — hunt hardest for this. Find the strongest, most specific results: numbers, timeframes, named customers or initials, star ratings, award counts, verbatim testimonial quotes. Put the single best result in "proof1", the other strong ones in "proof2", and copy testimonial/review quotes VERBATIM into "voice" — do not paraphrase them.
 2. SERVICES — list every distinct service, offer, or package they sell in "services", one per line. These become ad-targeting options later.
-Skip generic marketing fluff ("we care about quality") — only extract specifics a direct-response ad could actually use.
+Skip generic marketing fluff ("we care about quality") — only extract specifics a direct-response ad could actually use.${currentBlock}
 
 MATERIAL TO ANALYZE:
 ${fileDescriptions}
@@ -2380,7 +2399,17 @@ function showExtractionReview(extracted) {
   reviewEl.style.display = 'block';
 }
 
-function applyExtraction() {
+async function applyExtraction() {
+  // Safety net: applying auto-fill to a saved client snapshots the current
+  // state first, so one bad apply is a one-click version restore away.
+  const existing = activeClientId && clients.find(x => x.id === activeClientId);
+  if (existing) {
+    try {
+      await sb.insert('client_versions', { client_id: activeClientId, label: humanNow() + ' (before auto-fill)', saved_at: new Date().toISOString(), data: buildProfileFromObject(existing) });
+      await loadClientVersions(activeClientId);
+      renderVersionBar(activeClientId);
+    } catch(e) { console.warn('Pre-apply version snapshot failed:', e); }
+  }
   const filled = Object.keys(extractedData).filter(k => coerceText(extractedData[k]).trim());
   let applied = 0;
   // services appends to misc, so it must run after a plain misc value lands
@@ -2391,10 +2420,12 @@ function applyExtraction() {
     const val = extractEl.value.trim();
     if(!val) return;
     if(k === 'services') {
-      // no dedicated column exists — file the service list under "Anything Else"
+      // no dedicated column exists — file the service list under "Anything Else",
+      // replacing any earlier Services block (the model returns the full list)
       const misc = document.getElementById('f-misc');
       const block = 'Services offered:\n' + val;
-      misc.value = misc.value.trim() ? (misc.value.trim() + '\n\n' + block) : block;
+      const kept = misc.value.split(/\n?\nServices offered:\n[\s\S]*$/)[0].trim();
+      misc.value = kept ? (kept + '\n\n' + block) : block;
       applied++;
       return;
     }
