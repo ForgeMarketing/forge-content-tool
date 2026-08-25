@@ -28,10 +28,23 @@
   --green:#3d9960;--green-dim:rgba(61,153,96,0.09);--red:#c05050;
   --r:8px;--r2:12px;--topbar-h:56px;--bottomnav-h:64px;
   --safe-bottom:env(safe-area-inset-bottom,0px);
+  --chrome:rgba(12,12,11,0.96);
+  --text-soft:rgba(237,233,224,0.8);
+  --red-text:#e07070;--green-text:#6cc48e;
+}
+body.light{
+  --bg:#f6f4ee;--s1:#ffffff;--s2:#f0ede5;--s3:#e7e3d8;
+  --border:rgba(28,24,12,0.10);--border2:rgba(28,24,12,0.20);
+  --text:#1d1a13;--muted:rgba(29,26,19,0.55);--dim:rgba(29,26,19,0.34);
+  --accent:#9a721f;--accent-dim:rgba(154,114,31,0.10);--accent-border:rgba(154,114,31,0.38);
+  --green:#2e7d4c;--green-dim:rgba(46,125,76,0.10);--red:#b03e3e;
+  --chrome:rgba(246,244,238,0.96);
+  --text-soft:rgba(29,26,19,0.78);
+  --red-text:#a83c3c;--green-text:#2e7d4c;
 }
 html{font-size:16px;-webkit-text-size-adjust:100%}
 body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
-.topbar{position:fixed;top:0;left:0;right:0;height:var(--topbar-h);display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 20px;border-bottom:1px solid var(--border);background:rgba(12,12,11,0.96);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);z-index:200}
+.topbar{position:fixed;top:0;left:0;right:0;height:var(--topbar-h);display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 20px;border-bottom:1px solid var(--border);background:var(--chrome);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);z-index:200}
 .logo{display:flex;align-items:center;gap:9px;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;letter-spacing:0.02em;flex-shrink:0}
 .logomark{width:26px;height:26px;background:var(--accent);border-radius:5px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .logomark svg{width:13px;height:13px}
@@ -43,12 +56,14 @@ body.in-ws .crumb{display:flex}
 .crumb-back:hover{color:var(--text)}
 .crumb-sep{color:var(--dim);flex-shrink:0}
 .crumb-name{color:var(--text);font-weight:600;font-family:'Syne',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px}
+.theme-btn{width:26px;height:26px;border-radius:50%;border:1px solid var(--border2);background:var(--s2);color:var(--muted);font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;-webkit-tap-highlight-color:transparent;transition:all 0.15s;padding:0}
+.theme-btn:hover{border-color:var(--accent-border);color:var(--accent)}
 #autosave-indicator{font-size:11px;font-family:'DM Mono',monospace;color:var(--green);opacity:0;transition:opacity 0.4s;white-space:nowrap}
 .desktop-tabs{display:none;gap:2px}
 body.in-ws .desktop-tabs{display:flex}
 .tab{font-size:12px;padding:7px 16px;border-radius:var(--r);background:transparent;border:none;color:var(--muted);cursor:pointer;font-family:'Inter',sans-serif;transition:all 0.15s;font-weight:500;white-space:nowrap;-webkit-tap-highlight-color:transparent}
 .tab:hover{color:var(--text)}.tab.active{background:var(--s3);color:var(--text)}
-.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:rgba(12,12,11,0.97);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--border);z-index:200}
+.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--chrome);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--border);z-index:200}
 .bottom-nav-inner{display:grid;grid-template-columns:1fr 1fr 1fr;height:var(--bottomnav-h)}
 .bnav-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:transparent;border:none;color:var(--muted);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:color 0.15s;padding-bottom:var(--safe-bottom)}
 .bnav-btn.active{color:var(--accent)}
@@ -136,7 +151,7 @@ body.in-ws .desktop-tabs{display:flex}
 .out-tag{font-size:11px;font-family:'DM Mono',monospace;padding:3px 8px;border-radius:4px;background:var(--s2);color:var(--muted);border:1px solid var(--border)}
 .winner-box{background:var(--s1);border:1px solid var(--accent-border);border-radius:var(--r2);padding:16px;margin-bottom:14px;display:flex;gap:12px}
 .winner-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);margin-bottom:5px}
-.winner-text{font-size:13px;color:rgba(237,233,224,0.75);line-height:1.6}
+.winner-text{font-size:13px;color:var(--text-soft);line-height:1.6}
 
 .upload-section{background:var(--s1);border:1px solid var(--border);border-radius:var(--r2);padding:20px;margin-bottom:14px}
 .upload-zone{border:1.5px dashed var(--border2);border-radius:var(--r);padding:32px 20px;text-align:center;cursor:pointer;transition:all 0.2s;position:relative;-webkit-tap-highlight-color:transparent}
@@ -185,12 +200,12 @@ body.in-ws .desktop-tabs{display:flex}
 .hook-swap-note{font-size:11px;color:var(--dim);font-family:'DM Mono',monospace;margin-top:6px;line-height:1.5}
 .script-text{font-size:14px;color:var(--text);line-height:1.9;white-space:pre-wrap;font-family:'Inter',sans-serif}
 .pause-note{color:var(--muted);font-style:italic;font-size:12px;font-family:'DM Mono',monospace}
-.insight-box{background:var(--green-dim);border:1px solid rgba(61,153,96,0.18);border-radius:var(--r);padding:11px 13px;font-size:13px;color:rgba(237,233,224,0.8);line-height:1.6}
+.insight-box{background:var(--green-dim);border:1px solid rgba(61,153,96,0.18);border-radius:var(--r);padding:11px 13px;font-size:13px;color:var(--text-soft);line-height:1.6}
 .director-box{background:var(--s2);border-radius:var(--r);padding:11px 13px;font-size:13px;color:var(--muted);line-height:1.6;font-style:italic}
 .brief-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .brief-cell{background:var(--s2);border-radius:var(--r);padding:12px 13px}
 .brief-cell-label{font-size:9px;font-family:'DM Mono',monospace;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
-.brief-cell-text{font-size:13px;color:rgba(237,233,224,0.82);line-height:1.6}
+.brief-cell-text{font-size:13px;color:var(--text-soft);line-height:1.6}
 .copy-row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
 .copy-btn{font-size:12px;font-family:'DM Mono',monospace;padding:9px 13px;border:1px solid var(--border);border-radius:var(--r);background:transparent;color:var(--muted);cursor:pointer;transition:all 0.15s;min-height:40px;-webkit-tap-highlight-color:transparent}
 .copy-btn:hover,.copy-btn:active{border-color:var(--border2);color:var(--text)}
@@ -232,7 +247,7 @@ body.in-ws .desktop-tabs{display:flex}
 .dl-btn:hover,.dl-btn:active{border-color:var(--border2);color:var(--text)}
 .dl-btn.client{border-color:var(--accent-border);color:var(--accent)}
 .dl-btn.client:hover,.dl-btn.client:active{background:var(--accent-dim)}
-.dl-btn.internal{border-color:rgba(61,153,96,0.3);color:#3d9960}
+.dl-btn.internal{border-color:rgba(61,153,96,0.3);color:var(--green)}
 .dl-btn.internal:hover,.dl-btn.internal:active{background:var(--green-dim)}
 
 .angle-wrap{position:relative}
@@ -249,14 +264,14 @@ body.in-ws .desktop-tabs{display:flex}
 .tooltip-angle-name{font-size:12px;font-weight:500;color:var(--text);margin-bottom:3px;font-family:'Syne',sans-serif}
 .tooltip-angle-desc{font-size:12px;color:var(--muted);line-height:1.55}
 @media(max-width:767px){.tooltip-panel{width:calc(100vw - 48px);left:50%;transform:translateX(-50%)}}
-.error-box{display:none;background:rgba(192,80,80,0.08);border:1px solid rgba(192,80,80,0.22);border-radius:var(--r);padding:12px;font-size:13px;color:#e07070;margin-bottom:16px}
+.error-box{display:none;background:rgba(192,80,80,0.08);border:1px solid rgba(192,80,80,0.22);border-radius:var(--r);padding:12px;font-size:13px;color:var(--red-text);margin-bottom:16px}
 ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
 
 .toast-wrap{position:fixed;bottom:calc(20px + var(--bottomnav-h) + var(--safe-bottom));left:50%;transform:translateX(-50%);z-index:600;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;width:calc(100% - 40px);max-width:440px}
 body:not(.in-ws) .toast-wrap{bottom:calc(20px + var(--safe-bottom))}
 .toast{pointer-events:auto;background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);padding:11px 16px;font-size:13px;color:var(--text);box-shadow:0 8px 32px rgba(0,0,0,0.5);animation:toastIn 0.25s ease;max-width:100%;line-height:1.5;transition:opacity 0.3s}
-.toast.error{border-color:rgba(192,80,80,0.4);color:#e08080}
-.toast.success{border-color:rgba(61,153,96,0.4);color:#6cc48e}
+.toast.error{border-color:rgba(192,80,80,0.4);color:var(--red-text)}
+.toast.success{border-color:rgba(61,153,96,0.4);color:var(--green-text)}
 .toast.out{opacity:0}
 @keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 
@@ -339,6 +354,7 @@ body:not(.in-ws) .toast-wrap{bottom:calc(20px + var(--safe-bottom))}
     <button class="tab" data-action="ws-tab" data-tab="history">History</button>
   </div>
   <div class="topbar-right">
+    <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle light / dark mode">☀</button>
     <span id="autosave-indicator">autosaved ✓</span>
     <div class="crumb">
       <button class="crumb-back" data-action="go-home">← Clients</button>
@@ -513,8 +529,9 @@ body:not(.in-ws) .toast-wrap{bottom:calc(20px + var(--safe-bottom))}
           </div>
           <div class="gen-ctrl-full">
             <span class="field-label">Concept focus</span>
-            <input type="text" id="focus-input" placeholder="Specific service or offer — empty = general brand">
-            <div class="qty-note">Empty = general brand ads for the ICP. Type a service or offer (e.g. “kitchen remodels”) to anchor every concept on it.</div>
+            <div class="badge-grid" id="offer-chips"></div>
+            <input type="text" id="focus-input" placeholder="Add a custom offer, press Enter" onkeydown="if(event.key==='Enter'){event.preventDefault();addCustomOffer();}">
+            <div class="qty-note" id="focus-note">Nothing selected = general brand ads. Pick one offer to anchor the whole batch on it — pick several to split-test them, one offer per concept.</div>
           </div>
           <div class="gen-ctrl-full angle-wrap">
             <span class="field-label">Script angle</span>
@@ -808,6 +825,7 @@ function normalizeGeneration(raw) {
       brief: (c.brief && typeof c.brief === 'object' && !Array.isArray(c.brief)) ? c.brief : null,
       why_it_converts: sTxt(c.why_it_converts, ''),
       legacy_directors_note: sTxt(c.directors_note, ''),
+      focus: sTxt(c._focus || c.focus, ''),
     });
   });
   const legacyHooks = raw.hooks || raw.hook_bank;
@@ -938,7 +956,7 @@ function showTab(name) {
     if (b) b.classList.toggle('active', t===name);
   });
   document.querySelectorAll('#ws-tabs .tab').forEach(t => t.classList.toggle('active', t.dataset.tab===name));
-  if (name === 'generate') updateProfileHint();
+  if (name === 'generate') { updateProfileHint(); renderOfferChips(); updateFocusNote(); }
   if (name === 'history') renderHistory();
   window.scrollTo(0,0);
 }
@@ -1177,7 +1195,8 @@ function loadGenerationById(gid) {
   const c = clients.find(x => x.id === activeClientId);
   lastOutputData = normalizeGeneration({ concepts: gen.concepts || [], winner_pick: gen.winner || '', hooks: gen.hooks || [] });
   lastOutputClient = c;
-  lastOutputMeta = { stage: gen.stage || '', goal: gen.goal || '', length: gen.length || '', focus: sTxt(((gen.concepts||[])[0]||{})._focus,'') };
+  const focusVals = [...new Set((gen.concepts||[]).map(c=>sTxt(c._focus,'')).filter(Boolean))];
+  lastOutputMeta = { stage: gen.stage || '', goal: gen.goal || '', length: gen.length || '', focus: focusVals.length===0?'':(focusVals.length===1?focusVals[0]:'Split test: '+focusVals.length+' offers') };
   activeHookIdx = {};
   showTab('generate');
   renderOutputDisplay();
@@ -1294,6 +1313,83 @@ function updateProfileHint() {
   el.style.display = 'block';
 }
 
+// ── CONCEPT FOCUS / OFFER CHIPS ──
+// Sources: the core offer, any "Services offered:" block in Anything Else
+// (populated by the website scan), and custom entries typed in this session.
+// 0 selected = general brand · 1 = anchor the batch · 2+ = offer split test.
+const CORE_OFFER = '__CORE__';
+let customOffers = {};   // { clientKey: [strings] } — session only
+
+function offerClientKey(){ return activeClientId || '_new'; }
+
+function parseServicesFromMisc(misc){
+  const m = String(misc||'').match(/Services offered:\n([\s\S]*?)(?:\n\n|$)/);
+  if(!m) return [];
+  return m[1].split('\n').map(x=>x.trim()).filter(Boolean).slice(0,20);
+}
+
+function offerLabel(v){ return v===CORE_OFFER ? 'Core offer' : v; }
+
+function renderOfferChips(){
+  const wrap=document.getElementById('offer-chips');
+  const c=clients.find(x=>x.id===activeClientId);
+  const selected=new Set(Array.from(wrap.querySelectorAll('.badge.active')).map(b=>b.dataset.val));
+  const items=[];
+  if(c&&(c.offer||'').trim()) items.push(CORE_OFFER);
+  items.push(...parseServicesFromMisc(c&&c.misc));
+  items.push(...(customOffers[offerClientKey()]||[]));
+  const uniq=[...new Set(items)];
+  wrap.innerHTML=uniq.map(v=>{
+    const label=v===CORE_OFFER?'★ Core offer':(v.length>34?v.slice(0,32)+'…':v);
+    return `<span class="badge${selected.has(v)?' active':''}" data-val="${esc(v)}" title="${esc(offerLabel(v))}">${esc(label)}</span>`;
+  }).join('')||'<span style="font-size:12px;color:var(--dim);font-style:italic">No offers on file yet — scan the website or add one below.</span>';
+}
+
+function addCustomOffer(){
+  const inp=document.getElementById('focus-input');
+  const v=inp.value.trim();
+  if(!v) return;
+  const key=offerClientKey();
+  customOffers[key]=customOffers[key]||[];
+  if(!customOffers[key].includes(v)) customOffers[key].push(v);
+  inp.value='';
+  renderOfferChips();
+  const chip=document.querySelector(`#offer-chips .badge[data-val="${CSS.escape(v)}"]`);
+  if(chip) chip.classList.add('active');
+  updateFocusNote();
+}
+
+function getSelectedOffers(){
+  const sel=Array.from(document.querySelectorAll('#offer-chips .badge.active')).map(b=>b.dataset.val);
+  const typed=(document.getElementById('focus-input').value||'').trim();
+  if(typed&&!sel.includes(typed)) sel.push(typed);
+  return sel;
+}
+
+// Cycle offers across the batch: [A,B] × 5 concepts → A B A B A
+function assignOffers(offers, qty){
+  if(!offers.length) return null;
+  return Array.from({length:qty},(_,i)=>offers[i%offers.length]);
+}
+
+function updateFocusNote(){
+  const note=document.getElementById('focus-note');
+  const n=getSelectedOffers().length;
+  const qty=parseInt(getActive('qty-badges'))||2;
+  if(n>1&&qty<n) note.innerHTML=`<strong style="color:var(--accent)">Split test: ${n} offers selected but only ${qty} concept${qty!==1?'s':''}</strong> — set Concepts to ${n} so every offer gets one.`;
+  else if(n>1) note.textContent=`Split test: ${n} offers across ${qty} concepts — one offer per concept, head-to-head.`;
+  else if(n===1) note.textContent='Whole batch anchors on the selected offer.';
+  else note.textContent='Nothing selected = general brand ads. Pick one offer to anchor the whole batch on it — pick several to split-test them, one offer per concept.';
+}
+
+// multi-select toggle (unlike the single-active badge groups)
+document.getElementById('offer-chips').addEventListener('click',e=>{
+  const b=e.target.closest('.badge'); if(!b) return;
+  b.classList.toggle('active');
+  updateFocusNote();
+});
+document.getElementById('qty-badges').addEventListener('click',updateFocusNote);
+
 // ── PROMPT BUILDER ──
 function buildPrompt(client, stage, goal, angle, lengthId, qty, focus) {
   const c = k => (client[k]||'').trim();
@@ -1367,9 +1463,14 @@ BRIEF:
 Funnel stage: ${(STAGES[stage]||{}).prompt || stage}
 Primary goal: ${(GOALS[goal]||{}).prompt || goal}
 Script angle: ${(ANGLES[angle]||{}).prompt || angle}
-Concept focus: ${focus
-  ? `SPECIFIC OFFER — build every concept around this exact service/offer: "${focus}". The callout, the stated offer, the proof choices, and the bumper CTA all center on it. Do not sell the company generally.`
-  : `GENERAL BRAND — sell the company and its overall service quality to the ideal customer. Call out the ICP and make the brand the hero; specific services may appear as supporting detail, never as the core offer.`}
+Concept focus: ${(()=>{
+  const offers = Array.isArray(focus) ? focus : (focus ? [focus] : []);
+  const name = v => v===CORE_OFFER ? 'the core offer exactly as stated in the CLIENT PROFILE' : `"${v}"`;
+  if(!offers.length) return `GENERAL BRAND — sell the company and its overall service quality to the ideal customer. Call out the ICP and make the brand the hero; specific services may appear as supporting detail, never as the core offer.`;
+  if(offers.length===1) return `SPECIFIC OFFER — build every concept around this exact service/offer: ${name(offers[0])}. The callout, the stated offer, the proof choices, and the bumper CTA all center on it. Do not sell the company generally.`;
+  const assigned = assignOffers(offers, qty);
+  return `OFFER SPLIT TEST — this batch tests different offers head-to-head. Assign concepts to offers exactly as follows:\n${assigned.map((o,i)=>`  Concept ${i+1} → ${name(o)}`).join('\n')}\nEach concept anchors ENTIRELY on its assigned offer — its callout, stated offer, proof choices, and bumper CTA all center on that one offer, never the company generally. Keep structure and quality comparable across concepts so ad results isolate the offer, not the execution.`;
+})()}
 Video length: ${L.label} — target ${L.words[0]}-${L.words[1]} spoken words per script.
 Concepts: exactly ${qty}
 
@@ -1397,7 +1498,7 @@ async function generate(){
   if (!client) { showError('Save the client profile first, then generate.'); return; }
   const stage=getActive('stage-badges'), goal=getActive('goal-badges'), lengthId=getActive('length-badges');
   const angle=document.getElementById('angle-select').value;
-  const focus=(document.getElementById('focus-input').value||'').trim();
+  const focus=getSelectedOffers();
   const qty=parseInt(getActive('qty-badges'))||2;
   const L=LENGTHS.find(l=>l.id===lengthId)||LENGTHS[4];
   const maxTokens=Math.min(24000, 600 + qty * L.tokensPerConcept);
@@ -1417,8 +1518,10 @@ async function generate(){
     const data=normalizeGeneration(parseWorkerJSON(raw));
     if(!data.concepts.length) throw new Error('The model returned no concepts. Try again.');
 
+    const assigned=assignOffers(focus,qty);
+    if(assigned) data.concepts.forEach((c,i)=>{ c.focus=offerLabel(assigned[i]||''); });
     lastOutputData=data; lastOutputClient=client;
-    lastOutputMeta={stage,goal,length:lengthId,focus};
+    lastOutputMeta={stage,goal,length:lengthId,focus:focus.length===0?'':(focus.length===1?offerLabel(focus[0]):'Split test: '+focus.length+' offers')};
     activeHookIdx={};
 
     // Always persist successful generations
@@ -1427,7 +1530,7 @@ async function generate(){
         client_id:client.id, saved_at:humanNow(), saved_at_iso:new Date().toISOString(),
         output_type:'concepts', stage, goal, angle, length:lengthId,
         winner:data.winner_pick||'',
-        concepts:data.concepts.map(c=>({...c,_focus:focus||''})), hooks:[]
+        concepts:data.concepts.map(c=>({...c,_focus:c.focus||''})), hooks:[]
       });
       await loadClientGenerations(client.id);
     }catch(e){
@@ -1488,7 +1591,7 @@ function renderOutputDisplay(){
     const hIdx=activeHookIdx[i]||0;
     const active=hooks[hIdx]||hooks[0];
     const card=document.createElement('div');card.className='concept-card';
-    card.innerHTML=`<div class="concept-header" data-action="toggle-concept"><div><div class="concept-num">CONCEPT ${String(i+1).padStart(2,'0')}</div><div class="concept-title">${esc(c.title||('Concept '+(i+1)))}</div></div><div class="concept-toggle ${i===0?'open':''}">⌄</div></div>
+    card.innerHTML=`<div class="concept-header" data-action="toggle-concept"><div><div class="concept-num">CONCEPT ${String(i+1).padStart(2,'0')}${c.focus?' · '+esc(c.focus.length>40?c.focus.slice(0,38)+'…':c.focus):''}</div><div class="concept-title">${esc(c.title||('Concept '+(i+1)))}</div></div><div class="concept-toggle ${i===0?'open':''}">⌄</div></div>
     <div class="concept-body ${i===0?'open':''}">
       <div class="csec">
         <div class="csec-label">Hook${hooks.length>1?'s — primary + '+(hooks.length-1)+' alternates':''}</div>
@@ -2519,6 +2622,19 @@ function checkPassword() {
     input.focus();
   }
 }
+
+// ── THEME ──
+function applyTheme(t){
+  document.body.classList.toggle('light', t==='light');
+  const b=document.getElementById('theme-btn');
+  if(b) b.textContent = t==='light' ? '☾' : '☀';
+}
+function toggleTheme(){
+  const t=document.body.classList.contains('light') ? 'dark' : 'light';
+  localStorage.setItem('forge_theme', t);
+  applyTheme(t);
+}
+applyTheme(localStorage.getItem('forge_theme') || 'dark');
 
 // ── START ──
 if(sessionStorage.getItem(PW_KEY) === 'true') {
