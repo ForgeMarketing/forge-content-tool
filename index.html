@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Syne:wght@400;500;600;700;800&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -31,14 +31,21 @@
 }
 html{font-size:16px;-webkit-text-size-adjust:100%}
 body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
-.topbar{position:fixed;top:0;left:0;right:0;height:var(--topbar-h);display:flex;align-items:center;justify-content:space-between;padding:0 20px;border-bottom:1px solid var(--border);background:rgba(12,12,11,0.96);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);z-index:200}
-.logo{display:flex;align-items:center;gap:9px;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;letter-spacing:0.02em}
+.topbar{position:fixed;top:0;left:0;right:0;height:var(--topbar-h);display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 20px;border-bottom:1px solid var(--border);background:rgba(12,12,11,0.96);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);z-index:200}
+.logo{display:flex;align-items:center;gap:9px;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;letter-spacing:0.02em;flex-shrink:0}
 .logomark{width:26px;height:26px;background:var(--accent);border-radius:5px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .logomark svg{width:13px;height:13px}
 .logo-sub{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.05em}
-.topbar-right{display:flex;align-items:center;gap:10px}
-.client-badge{font-size:11px;font-family:'DM Mono',monospace;color:var(--accent);background:var(--accent-dim);border:1px solid var(--accent-border);border-radius:4px;padding:3px 8px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.desktop-tabs{display:flex;gap:2px}
+.topbar-right{display:flex;align-items:center;gap:12px;min-width:0}
+.crumb{display:none;align-items:center;gap:7px;font-size:13px;min-width:0}
+body.in-ws .crumb{display:flex}
+.crumb-back{background:none;border:none;color:var(--muted);cursor:pointer;font:inherit;font-size:13px;padding:6px 4px;transition:color 0.15s;-webkit-tap-highlight-color:transparent;white-space:nowrap}
+.crumb-back:hover{color:var(--text)}
+.crumb-sep{color:var(--dim);flex-shrink:0}
+.crumb-name{color:var(--text);font-weight:600;font-family:'Syne',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px}
+#autosave-indicator{font-size:11px;font-family:'DM Mono',monospace;color:var(--green);opacity:0;transition:opacity 0.4s;white-space:nowrap}
+.desktop-tabs{display:none;gap:2px}
+body.in-ws .desktop-tabs{display:flex}
 .tab{font-size:12px;padding:7px 16px;border-radius:var(--r);background:transparent;border:none;color:var(--muted);cursor:pointer;font-family:'Inter',sans-serif;transition:all 0.15s;font-weight:500;white-space:nowrap;-webkit-tap-highlight-color:transparent}
 .tab:hover{color:var(--text)}.tab.active{background:var(--s3);color:var(--text)}
 .bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:rgba(12,12,11,0.97);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--border);z-index:200}
@@ -47,17 +54,21 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .bnav-btn.active{color:var(--accent)}
 .bnav-label{font-size:10px;font-weight:500}
 .app-body{padding-top:var(--topbar-h);min-height:100vh}
-.panel{display:none}.panel.active{display:block}
+.view{display:none}.view.active{display:block}
+.wtab{display:none}.wtab.active{display:block}
 .page-wrap{padding:24px 20px;max-width:900px;margin:0 auto}
 .panel-title{font-family:'Syne',sans-serif;font-size:22px;font-weight:700;margin-bottom:6px}
 .panel-sub{font-size:13px;color:var(--muted);margin-bottom:22px;line-height:1.5}
+.search-input{width:100%;max-width:340px;font-size:16px;padding:10px 14px;border:1px solid var(--border);border-radius:var(--r);background:var(--s1);color:var(--text);font-family:'Inter',sans-serif;margin-bottom:18px;-webkit-appearance:none}
+.search-input:focus{outline:none;border-color:var(--accent-border)}
 .clients-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
 .client-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r2);padding:18px;cursor:pointer;transition:all 0.15s;-webkit-tap-highlight-color:transparent}
 .client-card:hover,.client-card:active{border-color:var(--border2);background:var(--s2)}
-.client-card.selected{border-color:var(--accent-border);background:var(--accent-dim)}
 .client-name{font-family:'Syne',sans-serif;font-size:15px;font-weight:600;margin-bottom:4px}
 .client-meta{font-size:12px;color:var(--muted);font-family:'DM Mono',monospace}
-.client-card-actions{margin-top:12px;display:flex;gap:6px}
+.client-stats{margin-top:6px;display:flex;gap:10px;font-size:11px;font-family:'DM Mono',monospace;color:var(--dim);flex-wrap:wrap}
+.client-open{margin-top:12px;display:flex;align-items:center;justify-content:space-between}
+.client-open-label{font-size:12px;color:var(--accent);font-weight:500}
 .new-client-card{background:transparent;border:1px dashed var(--border2);border-radius:var(--r2);padding:18px;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13px;-webkit-tap-highlight-color:transparent;min-height:80px;margin-top:0}
 .new-client-card:hover,.new-client-card:active{border-color:var(--accent-border);color:var(--accent)}
 .plus{width:28px;height:28px;border-radius:50%;border:1.5px solid currentColor;display:flex;align-items:center;justify-content:center;font-size:18px;line-height:1;flex-shrink:0}
@@ -80,6 +91,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .btn:hover,.btn:active{background:var(--s2)}
 .btn-primary{background:var(--accent);color:#0c0c0b;border-color:var(--accent);font-weight:600}
 .btn-primary:hover,.btn-primary:active{opacity:0.88}
+.btn-primary:disabled{opacity:0.5;cursor:not-allowed}
 .btn-danger{color:var(--red);border-color:rgba(192,80,80,0.25)}
 .btn-danger:hover,.btn-danger:active{background:rgba(192,80,80,0.08)}
 .gen-layout{display:block}
@@ -87,10 +99,13 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .gen-controls{display:grid;grid-template-columns:1fr 1fr;gap:16px 20px}
 .gen-ctrl-full{grid-column:1/-1}
 .gen-main{padding:22px 20px}
-.gen-btn-wrap{padding:16px 20px;border-top:1px solid var(--border);background:var(--s1);position:sticky;bottom:0;z-index:10}
+.gen-btn-wrap{padding:16px 20px;border-top:1px solid var(--border);background:var(--s1);position:sticky;bottom:calc(var(--bottomnav-h) + var(--safe-bottom));z-index:10}
 .gen-btn{width:100%;padding:14px;background:var(--accent);color:#0c0c0b;border:none;border-radius:var(--r);font-family:'Syne',sans-serif;font-size:14px;font-weight:700;letter-spacing:0.03em;cursor:pointer;transition:opacity 0.15s,transform 0.1s;-webkit-tap-highlight-color:transparent;min-height:50px}
 .gen-btn:hover{opacity:0.88}.gen-btn:active{transform:scale(0.98)}.gen-btn:disabled{opacity:0.35;cursor:not-allowed}
-.no-client-warn{background:rgba(201,153,58,0.08);border:1px solid var(--accent-border);border-radius:var(--r);padding:12px;font-size:13px;color:var(--accent);margin-bottom:16px;line-height:1.5}
+.gen-sidebar.busy .badge,.gen-sidebar.busy select{pointer-events:none;opacity:0.5}
+.hint-box{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;font-size:12px;color:var(--muted);line-height:1.55;margin-bottom:16px}
+.hint-box strong{color:var(--accent);font-weight:600}
+.qty-note{font-size:11px;color:var(--dim);margin-top:6px;line-height:1.5}
 .field-label{font-size:10px;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:8px;display:block}
 .badge-grid{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:4px}
 .badge{font-size:12px;padding:8px 12px;border:1px solid var(--border);border-radius:20px;background:transparent;color:var(--muted);cursor:pointer;transition:all 0.15s;font-family:'Inter',sans-serif;line-height:1;-webkit-tap-highlight-color:transparent;min-height:36px;display:flex;align-items:center}
@@ -154,29 +169,36 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .concept-body{display:none;padding:16px}.concept-body.open{display:block}
 .csec{margin-bottom:16px}.csec:last-child{margin-bottom:0}
 .csec-label{font-size:10px;font-family:'DM Mono',monospace;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
+.hook-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.hook-chip{font-size:11px;font-family:'DM Mono',monospace;padding:7px 11px;border:1px solid var(--border);border-radius:16px;background:transparent;color:var(--muted);cursor:pointer;transition:all 0.15s;-webkit-tap-highlight-color:transparent;min-height:32px}
+.hook-chip:hover,.hook-chip:active{border-color:var(--border2);color:var(--text)}
+.hook-chip.active{background:var(--accent-dim);border-color:var(--accent-border);color:var(--accent)}
 .hook-text{font-family:'Syne',sans-serif;font-size:17px;font-weight:600;color:var(--accent);line-height:1.35;padding:12px 14px;background:var(--accent-dim);border-left:3px solid var(--accent);border-radius:0 var(--r) var(--r) 0}
+.hook-why{font-size:12px;color:var(--muted);font-style:italic;margin-top:8px;line-height:1.5}
+.hook-swap-note{font-size:11px;color:var(--dim);font-family:'DM Mono',monospace;margin-top:6px;line-height:1.5}
 .script-text{font-size:14px;color:var(--text);line-height:1.9;white-space:pre-wrap;font-family:'Inter',sans-serif}
 .pause-note{color:var(--muted);font-style:italic;font-size:12px;font-family:'DM Mono',monospace}
 .insight-box{background:var(--green-dim);border:1px solid rgba(61,153,96,0.18);border-radius:var(--r);padding:11px 13px;font-size:13px;color:rgba(237,233,224,0.8);line-height:1.6}
 .director-box{background:var(--s2);border-radius:var(--r);padding:11px 13px;font-size:13px;color:var(--muted);line-height:1.6;font-style:italic}
-.copy-row{display:flex;gap:8px;margin-top:10px}
+.brief-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.brief-cell{background:var(--s2);border-radius:var(--r);padding:12px 13px}
+.brief-cell-label{font-size:9px;font-family:'DM Mono',monospace;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
+.brief-cell-text{font-size:13px;color:rgba(237,233,224,0.82);line-height:1.6}
+.copy-row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
 .copy-btn{font-size:12px;font-family:'DM Mono',monospace;padding:9px 13px;border:1px solid var(--border);border-radius:var(--r);background:transparent;color:var(--muted);cursor:pointer;transition:all 0.15s;min-height:40px;-webkit-tap-highlight-color:transparent}
 .copy-btn:hover,.copy-btn:active{border-color:var(--border2);color:var(--text)}
 .copy-btn.copied{border-color:var(--accent-border);color:var(--accent)}
 
-
-.version-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:20px;flex-wrap:wrap}
-.version-select-wrap{display:flex;align-items:center;gap:8px;flex:1}
+.version-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.version-select-wrap{display:flex;align-items:center;gap:8px;flex:1;min-width:220px}
 .version-select-wrap label{font-size:11px;font-family:'DM Mono',monospace;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
 .version-select-wrap select{font-size:12px;padding:7px 10px;border:1px solid var(--border);border-radius:var(--r);background:var(--s2);color:var(--text);font-family:'Inter',sans-serif;-webkit-appearance:none;flex:1}
 .version-badge{font-size:10px;font-family:'DM Mono',monospace;padding:3px 8px;border-radius:4px;background:var(--accent-dim);border:1px solid var(--accent-border);color:var(--accent)}
-.gen-history{margin-top:28px;border-top:1px solid var(--border);padding-top:24px}
-.gen-history-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:600;margin-bottom:4px;display:flex;align-items:center;justify-content:space-between}
-.gen-history-sub{font-size:12px;color:var(--muted);margin-bottom:16px}
-.gen-history-empty{font-size:13px;color:var(--dim);font-style:italic}
-.gen-batch{background:var(--s2);border:1px solid var(--border);border-radius:var(--r2);padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:all 0.15s;-webkit-tap-highlight-color:transparent}
-.gen-batch:hover,.gen-batch:active{border-color:var(--border2)}
-.gen-batch-header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.version-banner{display:none;background:var(--accent-dim);border:1px solid var(--accent-border);border-radius:var(--r);padding:12px 14px;margin-bottom:16px;font-size:13px;color:var(--accent);line-height:1.6}
+.version-banner .btn{margin-top:8px;margin-right:8px;font-size:12px;padding:7px 14px;min-height:36px}
+.gen-batch{background:var(--s2);border:1px solid var(--border);border-radius:var(--r2);padding:14px 16px;margin-bottom:10px;transition:all 0.15s;-webkit-tap-highlight-color:transparent}
+.gen-batch:hover{border-color:var(--border2)}
+.gen-batch-header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .gen-batch-meta{font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);margin-bottom:4px}
 .gen-batch-summary{font-size:13px;color:var(--text);line-height:1.4}
 .gen-batch-actions{display:flex;gap:6px;flex-shrink:0}
@@ -186,6 +208,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .gen-batch-btn.load:hover{background:var(--accent-dim)}
 .gen-batch-btn.del{color:var(--red);border-color:rgba(192,80,80,0.2)}
 .gen-batch-btn.del:hover{background:rgba(192,80,80,0.08)}
+.gen-history-empty{font-size:13px;color:var(--dim);font-style:italic}
 .dl-all-bar{background:var(--s1);border:1px solid var(--border);border-radius:var(--r2);padding:16px 18px;margin-bottom:18px;display:flex;flex-wrap:wrap;align-items:center;gap:12px}
 .dl-all-label{font-size:11px;font-family:'DM Mono',monospace;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);flex-shrink:0}
 .dl-all-btns{display:flex;flex-wrap:wrap;gap:8px;flex:1}
@@ -222,13 +245,20 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .error-box{display:none;background:rgba(192,80,80,0.08);border:1px solid rgba(192,80,80,0.22);border-radius:var(--r);padding:12px;font-size:13px;color:#e07070;margin-bottom:16px}
 ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
 
+.toast-wrap{position:fixed;bottom:calc(20px + var(--bottomnav-h) + var(--safe-bottom));left:50%;transform:translateX(-50%);z-index:600;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;width:calc(100% - 40px);max-width:440px}
+body:not(.in-ws) .toast-wrap{bottom:calc(20px + var(--safe-bottom))}
+.toast{pointer-events:auto;background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);padding:11px 16px;font-size:13px;color:var(--text);box-shadow:0 8px 32px rgba(0,0,0,0.5);animation:toastIn 0.25s ease;max-width:100%;line-height:1.5;transition:opacity 0.3s}
+.toast.error{border-color:rgba(192,80,80,0.4);color:#e08080}
+.toast.success{border-color:rgba(61,153,96,0.4);color:#6cc48e}
+.toast.out{opacity:0}
+@keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
 @media(min-width:768px){
-  .bottom-nav{display:none!important}
-  .desktop-tabs{display:flex}
   .app-body{padding-bottom:0}
   .page-wrap{padding:32px 40px}
   .field input,.field textarea,.field select{font-size:13px;padding:9px 12px}
   .gen-sidebar select{font-size:13px;padding:9px 12px}
+  .search-input{font-size:13px}
   .badge{font-size:12px;padding:7px 12px;min-height:32px}
   .check-opt{font-size:12px;padding:7px 11px;min-height:36px}
   .gen-layout{display:grid;grid-template-columns:300px 1fr;height:calc(100vh - var(--topbar-h));overflow:hidden}
@@ -239,14 +269,20 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
   .gen-btn-wrap{position:static;border-top:none;background:transparent;padding:20px 0 0;margin-top:auto}
   .form-actions{padding-bottom:40px}
   .field-row{grid-template-columns:1fr 1fr}
+  .toast-wrap{bottom:24px!important}
 }
 @media(max-width:767px){
-  .desktop-tabs{display:none}
-  .bottom-nav{display:block}
-  .app-body{padding-bottom:calc(var(--bottomnav-h) + var(--safe-bottom) + 8px)}
+  .desktop-tabs{display:none!important}
+  .logo-sub{display:none}
+  body.in-ws .logo-word{display:none}
+  .crumb-name{min-width:50px}
+  body.in-ws .bottom-nav{display:block}
+  body.in-ws .app-body{padding-bottom:calc(var(--bottomnav-h) + var(--safe-bottom) + 8px)}
   .field-row{grid-template-columns:1fr}
   .gen-controls{grid-template-columns:1fr}
   .clients-grid{grid-template-columns:1fr}
+  .brief-grid{grid-template-columns:1fr}
+  .crumb-name{max-width:110px}
 }
 </style>
 
@@ -269,7 +305,6 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 </head>
 <body>
 
-
 <div id="pw-gate">
   <div class="pw-box">
     <div class="pw-logo">
@@ -287,35 +322,48 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 <div class="topbar">
   <div class="logo">
     <div class="logomark"><svg viewBox="0 0 13 13" fill="none"><path d="M2 11L6.5 2L11 11" stroke="#0c0c0b" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M3.8 7.8H9.2" stroke="#0c0c0b" stroke-width="1.7" stroke-linecap="round"/></svg></div>
-    Forge <span class="logo-sub">VSL Engine</span>
+    <span class="logo-word">Forge</span> <span class="logo-sub">VSL Engine</span>
   </div>
-  <div class="desktop-tabs">
-    <button class="tab active" onclick="showPanel('clients')">Clients</button>
-    <button class="tab" onclick="showPanel('form')">Profile</button>
-    <button class="tab" onclick="showPanel('generate')">Generate</button>
+  <div class="desktop-tabs" id="ws-tabs">
+    <button class="tab" data-action="ws-tab" data-tab="profile">Profile</button>
+    <button class="tab" data-action="ws-tab" data-tab="generate">Generate</button>
+    <button class="tab" data-action="ws-tab" data-tab="history">History</button>
   </div>
-  <span id="active-client-badge" class="client-badge" style="display:none"></span>
+  <div class="topbar-right">
+    <span id="autosave-indicator">autosaved ✓</span>
+    <div class="crumb">
+      <button class="crumb-back" data-action="go-home">← Clients</button>
+      <span class="crumb-sep">/</span>
+      <span class="crumb-name" id="crumb-name">New client</span>
+    </div>
+  </div>
 </div>
 
 <div class="app-body">
 
-  <!-- CLIENTS -->
-  <div class="panel active" id="panel-clients">
+  <!-- HOME: CLIENT LIST -->
+  <div class="view active" id="view-home">
     <div class="page-wrap">
       <div class="panel-title">Client Profiles</div>
-      <div class="panel-sub">Select a client to generate scripts. Tap Edit to update their profile.</div>
+      <div class="panel-sub">Open a client to edit their profile, generate concepts, or browse past generations.</div>
+      <input type="text" class="search-input" id="client-search" placeholder="Search clients…" style="display:none">
       <div class="clients-grid" id="clients-grid"></div>
     </div>
   </div>
 
-  <!-- FORM -->
-  <div class="panel" id="panel-form">
+  <!-- WORKSPACE -->
+  <div class="view" id="view-workspace">
+
+    <!-- PROFILE TAB -->
+    <div class="wtab" id="wtab-profile">
     <div class="page-wrap">
       <div class="panel-title" id="form-title">New Client Profile</div>
       <div class="panel-sub">Every field sharpens the scripts. Partial saves are fine — autosaves as you type.</div>
+      <div id="version-slot"></div>
+      <div class="version-banner" id="version-banner"></div>
 
       <div class="form-section">
-        <div class="form-section-title"><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent)">01</span>  The Business &amp; Offer</div>
+        <div class="form-section-title"><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent)">01</span>  The Business &amp; Offer</div>
         <div class="form-section-sub">What’s being sold, at what price, and how the sale closes.</div>
         <div class="field-row">
           <div class="field"><label>Business Name</label><input type="text" id="f-bizname" placeholder="e.g. Leavitt Group" autocomplete="organization"></div>
@@ -339,7 +387,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
       </div>
 
       <div class="form-section">
-        <div class="form-section-title"><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent)">02</span>  The Customer</div>
+        <div class="form-section-title"><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent)">02</span>  The Customer</div>
         <div class="form-section-sub">Bad customer data = bad scripts. Verbatim words from real customers outperform anything we invent.</div>
         <div class="field"><label>Ideal Customer</label><textarea id="f-icp" placeholder="Demographics + psychographics. Job title, business type, revenue stage, mindset, worldview."></textarea></div>
         <div class="field"><label>Their Life Before Finding You</label><textarea id="f-before" placeholder="Pain, frustration, sleepless nights, embarrassing situations. Be visceral — specifics beat generalities."></textarea></div>
@@ -350,7 +398,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
       </div>
 
       <div class="form-section">
-        <div class="form-section-title"><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent)">03</span>  Proof &amp; Social Validation</div>
+        <div class="form-section-title"><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent)">03</span>  Proof &amp; Social Validation</div>
         <div class="form-section-sub">Specific results stop the scroll. Vague claims get skipped.</div>
         <div class="field"><label>Best Client Result</label><textarea id="f-proof1" placeholder="Exact numbers. Timeframe. Before vs. after. Name (or initials if private)."></textarea></div>
         <div class="field"><label>2–3 Additional Strong Results</label><textarea class="tall" id="f-proof2" placeholder="List with specifics — numbers, timeframes, industries."></textarea></div>
@@ -359,7 +407,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
       </div>
 
       <div class="form-section">
-        <div class="form-section-title"><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent)">04</span>  Competitive &amp; Market Context</div>
+        <div class="form-section-title"><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent)">04</span>  Competitive &amp; Market Context</div>
         <div class="form-section-sub">We build ads that stand out — not ads that blend in.</div>
         <div class="field"><label>Top 3 Competitors</label><textarea id="f-competitors" placeholder="Names and what they say in their ads."></textarea></div>
         <div class="field"><label>Main Differentiator</label><textarea id="f-differentiator" placeholder="What do you do that competitors don’t or can’t?"></textarea></div>
@@ -368,7 +416,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
       </div>
 
       <div class="form-section">
-        <div class="form-section-title"><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent)">05</span>  Ad Account &amp; Media Context</div>
+        <div class="form-section-title"><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent)">05</span>  Ad Account &amp; Media Context</div>
         <div class="form-section-sub">Creatives live inside a media context.</div>
         <div class="field"><label>Platforms</label>
           <div class="check-group" id="platforms">
@@ -389,8 +437,8 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
       </div>
 
       <div class="form-section">
-        <div class="form-section-title"><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent)">06</span>  Creative Direction</div>
-        <div class="form-section-sub">Guardrails and reference points for the team.</div>
+        <div class="form-section-title"><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent)">06</span>  Creative Direction</div>
+        <div class="form-section-sub">Guardrails and reference points for the team — this also feeds the creator brief on every concept.</div>
         <div class="field"><label>Brand Guidelines</label><textarea id="f-brand" placeholder="Colors, fonts, logo usage, tone of voice rules."></textarea></div>
         <div class="field"><label>Creative Styles They Love</label><textarea id="f-inspo" placeholder="e.g. Raw, no-edit talking-head style. Similar tone to Alex Hormozi early ads."></textarea></div>
         <div class="field"><label>Hard Limits — Never Acceptable</label><textarea id="f-limits" placeholder="e.g. No competitor names. No income claims. No stock footage."></textarea></div>
@@ -401,7 +449,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
       <!-- FILE UPLOAD SECTION -->
       <div class="upload-section">
         <div class="form-section-title"><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent)">📎</span>&nbsp; Client Files &amp; AI Auto-Fill</div>
-        <div class="form-section-sub">Upload any client files — brand guides, persona docs, testimonials, case studies. Claude will read them and auto-fill your profile fields. Files are saved to the client permanently.</div>
+        <div class="form-section-sub">Upload client files — brand guides, persona docs, testimonials, case studies. Claude reads them and auto-fills your profile fields. File names are logged to the client record.</div>
         <div class="upload-zone" id="upload-zone" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
           <input type="file" id="file-input" multiple accept=".pdf,.doc,.docx,.txt,.csv,.png,.jpg,.jpeg,.webp" onchange="handleFileSelect(event)">
           <div class="upload-zone-icon">⬆</div>
@@ -417,7 +465,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
           <div class="extract-review-sub">Edit anything that looks wrong, then hit Apply to Fields. Only filled fields will overwrite existing profile data.</div>
           <div id="extract-fields"></div>
           <div class="extract-actions">
-            <button class="btn btn-primary" onclick="applyExtraction()">Apply to Fields</button>
+            <button class="btn btn-primary" id="apply-extract-btn" onclick="applyExtraction()">Apply to Fields</button>
             <button class="btn" onclick="dismissExtraction()">Dismiss</button>
           </div>
         </div>
@@ -428,182 +476,199 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
       </div>
 
       <div class="form-actions">
-        <button class="btn btn-primary" onclick="saveClient()">Save Profile</button>
-        <button class="btn" onclick="showPanel('clients')">Cancel</button>
-        <span id="autosave-indicator" style="font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);opacity:0;transition:opacity 0.4s">autosaved</span>
+        <button class="btn btn-primary" id="save-btn" onclick="saveClient()">Save Profile</button>
+        <button class="btn" data-action="go-home">Back to Clients</button>
         <button class="btn btn-danger" id="delete-btn" onclick="deleteClient()" style="display:none;margin-left:auto">Delete</button>
       </div>
     </div>
-  </div>
+    </div>
 
-  <!-- GENERATE -->
-  <div class="panel" id="panel-generate">
+    <!-- GENERATE TAB -->
+    <div class="wtab" id="wtab-generate">
     <div class="gen-layout">
-      <aside class="gen-sidebar">
-        <div id="no-client-warn" class="no-client-warn" style="display:none">No client loaded. Go to Clients and select one first.</div>
+      <aside class="gen-sidebar" id="gen-sidebar">
+        <div class="hint-box" id="profile-hint" style="display:none"></div>
         <div class="gen-controls">
-          <div class="gen-ctrl-full">
-            <span class="field-label">Output type</span>
-            <div class="badge-grid" id="output-type-badges">
-              <span class="badge active" data-val="full_scripts">Full scripts</span>
-              <span class="badge" data-val="hooks_only">Hook bank</span>
-              <span class="badge" data-val="full_batch">Scripts + hooks</span>
-            </div>
-          </div>
           <div>
             <span class="field-label">Funnel stage</span>
-            <div class="badge-grid" id="stage-badges">
-              <span class="badge active" data-val="cold traffic — audience has never seen this brand. Must interrupt and hook within 2 seconds. No assumed awareness.">Cold</span>
-              <span class="badge" data-val="warm retargeting — watched 75%+ of a prior video or visited the site. Aware but unconverted. Deepen belief, push to action.">Warm</span>
-              <span class="badge" data-val="no-show re-engagement — booked a call but did not show. Use urgency, specificity, and proof to re-engage.">No-show</span>
-            </div>
+            <div class="badge-grid" id="stage-badges"></div>
           </div>
           <div>
             <span class="field-label">Primary goal</span>
-            <div class="badge-grid" id="goal-badges">
-              <span class="badge active" data-val="drive form submissions / lead ad completions">Lead form</span>
-              <span class="badge" data-val="drive call bookings on the VSL or landing page">Book a call</span>
-              <span class="badge" data-val="build authority and trust — proof and mechanism education, not a direct CTA">Authority</span>
-              <span class="badge" data-val="pre-qualify — attract only serious high-intent buyers, actively repel bad-fit leads">Pre-qualify</span>
-            </div>
+            <div class="badge-grid" id="goal-badges"></div>
           </div>
           <div class="gen-ctrl-full angle-wrap">
             <span class="field-label">Script angle</span>
             <div class="angle-select-row">
-              <select id="angle-select">
-                <option value="problem_agitation">Problem agitation → mechanism</option>
-                <option value="proof_led">Proof-led credibility</option>
-                <option value="contrarian">Contrarian reframe</option>
-                <option value="mechanism_reveal">Mechanism reveal</option>
-                <option value="founder_story">Founder / behind the scenes</option>
-                <option value="diagnostic">Diagnostic / qualifier</option>
-                <option value="math_leverage">Math / leverage (CPL angle)</option>
-              </select>
+              <select id="angle-select"></select>
               <div class="tooltip-wrap">
                 <div class="tooltip-icon" id="angle-tooltip-btn" onclick="toggleAngleTooltip()">?</div>
-                <div class="tooltip-panel" id="angle-tooltip-panel">
-                  <div class="tooltip-panel-title">Script Angle Guide</div>
-                  <div class="tooltip-angle">
-                    <div class="tooltip-angle-name">Problem agitation → mechanism</div>
-                    <div class="tooltip-angle-desc">Opens by poking the viewer’s biggest pain point until they feel it viscerally, then positions your offer as the only logical solution. Best for cold audiences who don’t know you yet.</div>
-                  </div>
-                  <div class="tooltip-angle">
-                    <div class="tooltip-angle-name">Proof-led credibility</div>
-                    <div class="tooltip-angle-desc">Leads with your single most powerful client result in the first 5 seconds. Builds trust immediately, then connects the result to your process so the viewer understands why it worked and believes it can work for them.</div>
-                  </div>
-                  <div class="tooltip-angle">
-                    <div class="tooltip-angle-name">Contrarian reframe</div>
-                    <div class="tooltip-angle-desc">Challenges a widely held belief your audience currently has — something they’ve been told or assumed is true. Creates a “I never thought about it that way” moment that makes them stop and reconsider. Strong pattern interrupt.</div>
-                  </div>
-                  <div class="tooltip-angle">
-                    <div class="tooltip-angle-name">Mechanism reveal</div>
-                    <div class="tooltip-angle-desc">Pulls back the curtain on exactly how your system or process works. Educates the viewer so thoroughly that they feel like they’re getting value even before buying. Creates desire through understanding.</div>
-                  </div>
-                  <div class="tooltip-angle">
-                    <div class="tooltip-angle-name">Founder / behind the scenes</div>
-                    <div class="tooltip-angle-desc">The spokesperson shares a personal insight, story, or behind-the-scenes perspective about what actually works in their industry. Builds parasocial trust and positions them as a real expert — not a polished actor reading a script.</div>
-                  </div>
-                  <div class="tooltip-angle">
-                    <div class="tooltip-angle-name">Diagnostic / qualifier</div>
-                    <div class="tooltip-angle-desc">Opens by calling out a specific symptom the ideal customer is experiencing right now. Makes them feel seen and understood before you’ve said anything about your offer. Best for pre-qualifying leads and filtering for high-intent buyers.</div>
-                  </div>
-                  <div class="tooltip-angle">
-                    <div class="tooltip-angle-name">Math / leverage (CPL angle)</div>
-                    <div class="tooltip-angle-desc">Uses a specific number or simple math equation in the first 3 seconds to show how one metric — if improved — changes everything else downstream. Makes the ROI case visceral and undeniable. Works especially well for lead gen and service businesses.</div>
-                  </div>
-                </div>
+                <div class="tooltip-panel" id="angle-tooltip-panel"></div>
               </div>
             </div>
           </div>
           <div>
             <span class="field-label">Video length</span>
-            <div class="badge-grid" id="length-badges">
-              <span class="badge" data-val="15-30 seconds — hook, one key point, CTA only. No filler.">15–30s</span>
-              <span class="badge" data-val="30-45 seconds — hook, one mechanism beat, CTA. Tight.">30–45s</span>
-              <span class="badge" data-val="45-60 seconds — hook, mechanism beat, proof beat, CTA.">45–60s</span>
-              <span class="badge" data-val="60-90 seconds — hook, problem expansion, mechanism, one proof point, CTA.">60–90s</span>
-              <span class="badge active" data-val="90-120 seconds — hook, problem expansion, full mechanism, proof stack, CTA.">90–120s</span>
-              <span class="badge" data-val="120-180 seconds — hook, problem expansion, full mechanism, layered proof stack, objection handling, double CTA.">2–3 min</span>
-            </div>
+            <div class="badge-grid" id="length-badges"></div>
           </div>
           <div>
-            <span class="field-label" id="qty-label">How many scripts</span>
-            <div class="badge-grid" id="qty-badges">
-              <span class="badge" data-val="1">1</span>
-              <span class="badge active" data-val="2">2</span>
-              <span class="badge" data-val="3">3</span>
-              <span class="badge" data-val="4">4</span>
-              <span class="badge" data-val="5">5</span>
-              <span class="badge" data-val="10">10</span>
-              <span class="badge" data-val="20">20</span>
-              <span class="badge" data-val="30">30</span>
-              <span class="badge" data-val="40">40</span>
-            </div>
-          </div>
-          <div id="hook-qty-wrap" style="display:none">
-            <span class="field-label">How many hooks</span>
-            <div class="badge-grid" id="hook-qty-badges">
-              <span class="badge active" data-val="2">2</span>
-              <span class="badge" data-val="3">3</span>
-              <span class="badge" data-val="5">5</span>
-              <span class="badge" data-val="8">8</span>
-              <span class="badge" data-val="10">10</span>
-              <span class="badge" data-val="15">15</span>
-            </div>
+            <span class="field-label">Concepts</span>
+            <div class="badge-grid" id="qty-badges"></div>
+            <div class="qty-note">Each concept = 1 full script + 4 alternate hooks + creator brief</div>
           </div>
         </div>
         <div class="gen-btn-wrap">
-          <button class="gen-btn" id="gen-btn" onclick="generate()">Generate Scripts ↗</button>
+          <button class="gen-btn" id="gen-btn" onclick="generate()">Generate Concepts ↗</button>
         </div>
       </aside>
-      <div class="gen-main">
-        <div class="gen-title">Script Generator</div>
-        <div class="gen-sub">Load a client, configure your brief, hit Generate.</div>
+      <div class="gen-main" id="gen-main">
+        <div class="gen-title">Concept Generator</div>
+        <div class="gen-sub">One concept is what we sell: a full script with its hook baked in, plus four alternate hooks to test.</div>
         <div class="error-box" id="error-box"></div>
         <div class="loading-state" id="loading-state">
-          <div class="loading-text" id="loading-text">Building your scripts...</div>
+          <div class="loading-text" id="loading-text">Sending brief to Claude...</div>
           <div class="loading-bar-wrap"><div class="loading-bar"></div></div>
         </div>
         <div class="empty-state" id="empty-state">
           <div class="empty-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="14" height="14" rx="3" stroke="#555" stroke-width="1.2"/><path d="M7 10h6M10 7v6" stroke="#555" stroke-width="1.2" stroke-linecap="round"/></svg></div>
-          <div class="empty-title">No scripts yet</div>
-          <div class="empty-desc">Select a client and configure your brief to get started.</div>
+          <div class="empty-title">No concepts yet</div>
+          <div class="empty-desc">Configure your brief on the left and hit Generate.</div>
         </div>
         <div class="output-section" id="output-section">
           <div class="output-meta" id="output-meta"></div>
+          <div id="dl-bar-area"></div>
           <div id="winner-area"></div>
           <div id="concepts-area"></div>
         </div>
       </div>
     </div>
-  </div>
+    </div>
 
+    <!-- HISTORY TAB -->
+    <div class="wtab" id="wtab-history">
+      <div class="page-wrap">
+        <div class="panel-title">Generation History</div>
+        <div class="panel-sub" id="history-sub">Every generation is saved automatically. Load one to view and re-download it.</div>
+        <div id="history-list"></div>
+      </div>
+    </div>
+
+  </div>
 </div>
 
-<!-- MOBILE BOTTOM NAV -->
-<nav class="bottom-nav" aria-label="Main navigation">
+<!-- MOBILE BOTTOM NAV (workspace only) -->
+<nav class="bottom-nav" aria-label="Workspace navigation">
   <div class="bottom-nav-inner">
-    <button class="bnav-btn active" id="bnav-clients" onclick="showPanel('clients')">
-      <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="8" cy="8" r="3.5" stroke="currentColor" stroke-width="1.4"/><path d="M2 19c0-3.314 2.686-6 6-6h0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="15" cy="8" r="3.5" stroke="currentColor" stroke-width="1.4"/><path d="M11 19c0-3.314 2.686-6 6-6h0c3.314 0 6 2.686 6 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
-      <span class="bnav-label">Clients</span>
-    </button>
-    <button class="bnav-btn" id="bnav-form" onclick="showPanel('form')">
+    <button class="bnav-btn" id="bnav-profile" data-action="ws-tab" data-tab="profile">
       <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="3" y="3" width="16" height="16" rx="2.5" stroke="currentColor" stroke-width="1.4"/><path d="M7 8h8M7 11h8M7 14h5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
       <span class="bnav-label">Profile</span>
     </button>
-    <button class="bnav-btn" id="bnav-generate" onclick="showPanel('generate')">
+    <button class="bnav-btn" id="bnav-generate" data-action="ws-tab" data-tab="generate">
       <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M4 11h14M13 5l6 6-6 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <span class="bnav-label">Generate</span>
+    </button>
+    <button class="bnav-btn" id="bnav-history" data-action="ws-tab" data-tab="history">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="1.4"/><path d="M11 6.5V11l3 2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span class="bnav-label">History</span>
     </button>
   </div>
 </nav>
 
-<script>
+<div class="toast-wrap" id="toast-wrap"></div>
 
+<script>
 
 const SUPABASE_URL = 'https://paggzotozuhvstppcihc.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhZ2d6b3RvenVodnN0cHBjaWhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwMzcyNDcsImV4cCI6MjA5OTYxMzI0N30.ZfvoA8n-ZvBkHrDSSoDqL3jrDdCEsND1TVVZvYFd6i0';
 const WORKER_URL = 'https://forge-api-proxy.kyle-d56.workers.dev';
+
+// ── GENERATION CONFIG (single source of truth for controls + prompt) ──
+
+const STAGES = {
+  cold:   { label:'Cold',    prompt:'cold traffic — audience has never seen this brand. Must interrupt and hook within 2 seconds. No assumed awareness.' },
+  warm:   { label:'Warm',    prompt:'warm retargeting — watched 75%+ of a prior video or visited the site. Aware but unconverted. Deepen belief, push to action.' },
+  noshow: { label:'No-show', prompt:'no-show re-engagement — booked a call but did not show. Use urgency, specificity, and proof to re-engage.' },
+};
+
+const GOALS = {
+  lead_form:  { label:'Lead form',   prompt:'drive form submissions / lead ad completions' },
+  book_call:  { label:'Book a call', prompt:'drive call bookings on the VSL or landing page' },
+  authority:  { label:'Authority',   prompt:'build authority and trust — proof and mechanism education, not a hard direct CTA' },
+  prequalify: { label:'Pre-qualify', prompt:'pre-qualify — attract only serious high-intent buyers, actively repel bad-fit leads' },
+};
+
+// One object per angle: label (select), tooltip (help panel), prompt (sent to the model).
+const ANGLES = {
+  problem_agitation: {
+    label:'Problem agitation → mechanism',
+    tooltip:'Opens by poking the viewer’s biggest pain point until they feel it viscerally, then positions your offer as the only logical solution. Best for cold audiences who don’t know you yet.',
+    prompt:'Problem agitation to mechanism: open the pain/proof hook on their sharpest pain. Force self-identification. Bridge to the offer and mechanism as the only logical solution.' },
+  proof_led: {
+    label:'Proof-led credibility',
+    tooltip:'Leads with your single most powerful client result in the first 5 seconds. Builds trust immediately, then connects the result to your process so the viewer understands why it worked and believes it can work for them.',
+    prompt:'Proof-led credibility: open the hook with the single most powerful client result. Build credibility in the first 5 seconds, then connect that result to the process so the viewer understands why it worked.' },
+  contrarian: {
+    label:'Contrarian reframe',
+    tooltip:'Challenges a widely held belief your audience currently has — something they’ve been told or assumed is true. Creates a “I never thought about it that way” moment that makes them stop and reconsider. Strong pattern interrupt.',
+    prompt:'Contrarian reframe: challenge a widely held belief the audience has. Create an "I never thought about it that way" moment. Position the client as the smarter alternative.' },
+  mechanism_reveal: {
+    label:'Mechanism reveal',
+    tooltip:'Pulls back the curtain on exactly how your system or process works. Educates the viewer so thoroughly that they feel like they’re getting value even before buying. Creates desire through understanding.',
+    prompt:'Mechanism reveal: demonstrate what makes this offer uniquely effective. Educate the viewer on the specific system. Make them feel like they are learning something valuable.' },
+  founder_story: {
+    label:'Founder / behind the scenes',
+    tooltip:'The spokesperson shares a personal insight, story, or behind-the-scenes perspective about what actually works in their industry. Builds parasocial trust and positions them as a real expert — not a polished actor reading a script.',
+    prompt:'Founder / behind the scenes: spokesperson shares a personal insight about what actually works. Builds parasocial trust. Positions them as a real expert, not a polished actor.' },
+  diagnostic: {
+    label:'Diagnostic / qualifier',
+    tooltip:'Opens by calling out a specific symptom the ideal customer is experiencing right now. Makes them feel seen and understood before you’ve said anything about your offer. Best for pre-qualifying leads and filtering for high-intent buyers.',
+    prompt:'Diagnostic / qualifier: call out a specific symptom the ideal customer is experiencing right now. Make them feel seen and understood. Position the offer as the diagnosis and solution.' },
+  math_leverage: {
+    label:'Math / leverage (CPL angle)',
+    tooltip:'Uses a specific number or simple math equation in the first 3 seconds to show how one metric — if improved — changes everything else downstream. Makes the ROI case visceral and undeniable. Works especially well for lead gen and service businesses.',
+    prompt:'Math / leverage: use a specific number or simple math equation in the first 3 seconds. Show how one metric, if improved, changes everything else downstream. Make the ROI case visceral and simple.' },
+};
+
+// Length id drives the prompt word target, max_tokens, and the UI label.
+// tokensPerConcept measured against the live worker: one full concept package
+// (script + 4 alt hooks + brief + why) runs ~1,800 output tokens even at the
+// shortest length — the brief and alt hooks dominate, not the script.
+const LENGTHS = [
+  { id:'15-30',   label:'15–30s',  words:[40,75],   tokensPerConcept:2200 },
+  { id:'30-45',   label:'30–45s',  words:[75,110],  tokensPerConcept:2400 },
+  { id:'45-60',   label:'45–60s',  words:[110,150], tokensPerConcept:2600 },
+  { id:'60-90',   label:'60–90s',  words:[150,225], tokensPerConcept:2900 },
+  { id:'90-120',  label:'90–120s', words:[225,300], tokensPerConcept:3200 },
+  { id:'120-180', label:'2–3 min', words:[300,450], tokensPerConcept:3800 },
+];
+const DEFAULT_LENGTH = '90-120';
+
+// ── EXEMPLARS ──
+// Two fictional scripts in the Forge house structure. Swap in real winning
+// scripts here any time — the prompt tells the model to match rhythm and
+// structure but never reuse the wording or the fictional clients' facts.
+const EXEMPLARS = [
+`If you run a roofing company doing 50-plus jobs a year — this is for you. [pause]
+You're pouring money into ads, and the leads still show up broke, flaky, or not at all.
+We fix that. Forge builds your whole video ad system — scripts, talent, filming, editing, launch — and books you 30-plus qualified estimates a month within 90 days, or you don't pay us. [pause]
+Here's why that's not a crazy claim.
+Last spring we took a roofing company from 11 leads a month to 74. Same crew. Same trucks. Different ads. Cost per estimate went from $212 down to $38 — in six weeks.
+Then an HVAC shop in Phoenix: 212 booked calls in one quarter. The owner's words, not ours: "We had to hire two more techs just to keep up." [pause]
+That's what happens when your ads stop sounding like ads and start sounding like you.
+So — if you're a roofer, or any home service business, done paying for leads that go nowhere... we solve exactly that.
+Book your call now. Takes 30 seconds.`,
+`37 new patients in 41 days. [pause]
+That's what one med spa owner got from a single 45-second video.
+If you own a med spa and your calendar has gaps — listen.
+We build your entire patient-booking campaign — the script, the filming, the targeting, all of it — and fill your book inside 60 days. Flat fee. No retainer black hole. [pause]
+Here's the part nobody tells you.
+She'd already been burned by two agencies before us. What changed wasn't the budget. It was the ad.
+It didn't talk about lasers or packages — it said the exact thing her patients say: "I just want to look like me again. Less tired."
+That one line outperformed a $5,000 funnel. [pause]
+Since then: 214 booked appointments across three locations, and her cost per booking is down 61%.
+If you run a med spa — or any appointment-based business — staring at empty slots... that's exactly what we fix.
+Tap below, book your 15-minute demo. That's it.`
+];
 
 // ── SUPABASE CLIENT ──
 const sb = {
@@ -628,7 +693,6 @@ const sb = {
   async insert(table, data) { return await sb.query(table,'POST',data); },
   async update(table, col, val, data) { return await sb.query(table,'PATCH',data,`?${col}=eq.${encodeURIComponent(val)}`); },
   async delete(table, col, val) { return await sb.query(table,'DELETE',null,`?${col}=eq.${encodeURIComponent(val)}`); },
-  async deleteWhere(table, col, val, col2, val2) { return await sb.query(table,'DELETE',null,`?${col}=eq.${encodeURIComponent(val)}&${col2}=eq.${val2}`); },
 };
 
 // ── WORKER CLIENT ──
@@ -665,155 +729,256 @@ async function callWorker(payload) {
   }
 }
 
+// ── RESPONSE NORMALIZERS ──
+// The worker has returned both pre-parsed JSON and the raw Anthropic envelope
+// over time. Handle every shape in one place so both call sites (generation
+// and file extraction) behave the same.
+function parseWorkerJSON(data) {
+  let text = null;
+  if (data && typeof data === 'object') {
+    if (Array.isArray(data.content) && data.content[0] && typeof data.content[0].text === 'string') {
+      text = data.content[0].text;             // raw Anthropic Messages envelope
+    } else {
+      return data;                             // worker already parsed the model output
+    }
+  } else if (typeof data === 'string') {
+    text = data;
+  }
+  if (text === null) throw new Error('The model returned an empty response. Try again.');
+
+  const clean = text.replace(/```(?:json)?/gi, '').trim();
+  const start = clean.indexOf('{');
+  if (start < 0) throw new Error('The model returned no JSON. Try again.');
+
+  // Balanced-brace scan (string-aware) — a greedy regex over-captures when the
+  // model appends prose after the object.
+  let depth = 0, inStr = false, escp = false, end = -1;
+  for (let i = start; i < clean.length; i++) {
+    const ch = clean[i];
+    if (inStr) {
+      if (escp) escp = false;
+      else if (ch === '\\') escp = true;
+      else if (ch === '"') inStr = false;
+    } else {
+      if (ch === '"') inStr = true;
+      else if (ch === '{') depth++;
+      else if (ch === '}') { depth--; if (depth === 0) { end = i; break; } }
+    }
+  }
+  if (end < 0) throw new Error('The output was cut off before the JSON finished — reduce the concept count or video length and try again.');
+  try {
+    return JSON.parse(clean.slice(start, end + 1));
+  } catch(e) {
+    throw new Error('The model returned malformed JSON. Try again. (' + clean.slice(start, start + 200) + '…)');
+  }
+}
+
+// Canonical in-memory generation shape. Accepts fresh model output AND legacy
+// DB rows (old full_scripts / full_batch / hooks_only generations) so history
+// from before the concepts rework still loads.
+function normalizeGeneration(raw) {
+  raw = raw || {};
+  const out = { concepts: [], winner_pick: sTxt(raw.winner_pick, ''), legacy_hook_bank: null };
+  (raw.concepts || []).forEach(c => {
+    if (!c || typeof c !== 'object') return;
+    out.concepts.push({
+      title: sTxt(c.title, ''),
+      hook: sTxt(c.hook, ''),
+      script: sTxt(c.script, ''),
+      alt_hooks: Array.isArray(c.alt_hooks) ? c.alt_hooks.filter(h => h && sTxt(h.hook)) : [],
+      brief: (c.brief && typeof c.brief === 'object' && !Array.isArray(c.brief)) ? c.brief : null,
+      why_it_converts: sTxt(c.why_it_converts, ''),
+      legacy_directors_note: sTxt(c.directors_note, ''),
+    });
+  });
+  const legacyHooks = raw.hooks || raw.hook_bank;
+  if (Array.isArray(legacyHooks) && legacyHooks.length) out.legacy_hook_bank = legacyHooks;
+  return out;
+}
+
+// ── TOASTS ──
+function toast(msg, kind) {
+  const wrap = document.getElementById('toast-wrap');
+  const el = document.createElement('div');
+  el.className = 'toast' + (kind ? ' ' + kind : '');
+  el.textContent = msg;
+  wrap.appendChild(el);
+  const ttl = kind === 'error' ? 6000 : 3200;
+  setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 350); }, ttl);
+}
+
 // ── STATE ──
 let clients = [];
-let activeClientId = null;
-let editingClientId = null;
-let clientVersions = {};  // { clientId: [versions] }
-let clientGenerations = {}; // { clientId: [generations] }
-const loadMsgs = ['Building your scripts...','Writing hooks...','Deploying proof points...','Stress-testing CTAs...','Almost there...'];
+let activeClientId = null;        // the client open in the workspace (null = unsaved new client)
+let currentTab = 'profile';
+let viewingVersionIdx = null;     // non-null = profile form shows an old snapshot (read-only mode)
+let clientVersions = {};          // { clientId: [versions] }
+let clientGenerations = {};       // { clientId: [generations] }
+let clientFiles = {};
 let lastOutputData = null;
 let lastOutputClient = null;
+let lastOutputMeta = null;        // { stage, goal, length } ids (or legacy strings)
+let activeHookIdx = {};           // { conceptIdx: 0..4 } — which hook chip is shown
+let generating = false;
+
+const loadMsgs = ['Waiting on Claude…','Writing concepts…','Drafting alternate hooks…','Building creator briefs…','Stress-testing CTAs…','Almost there…'];
+
+// ── FORMAT HELPERS ──
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function sTxt(v,fallback){
+  if(typeof v==='string'&&v.trim()) return v;
+  if(typeof v==='number') return String(v);
+  return fallback||'';
+}
+function coerceText(v){
+  if(v==null) return '';
+  if(typeof v==='string') return v;
+  if(Array.isArray(v)) return v.map(coerceText).join(', ');
+  if(typeof v==='object') return JSON.stringify(v);
+  return String(v);
+}
+function slugify(s){return(s||'untitled').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'untitled';}
+function humanNow(){const n=new Date();return n.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+' '+n.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});}
+function stageLabel(s){return (STAGES[s]&&STAGES[s].label)||sTxt(s,'').split('—')[0].trim()||'—';}
+function goalLabel(g){return (GOALS[g]&&GOALS[g].label)||sTxt(g,'').split(' ').slice(0,3).join(' ')||'—';}
+function lengthLabel(l){const m=LENGTHS.find(x=>x.id===l);if(m)return m.label;const s=sTxt(l,'');return s?s.split('—')[0].trim():'—';}
+function angleLabel(a){return (ANGLES[a]&&ANGLES[a].label)||sTxt(a,'—');}
 
 // ── INIT ──
 async function init() {
-  showLoadingState('Loading clients...');
+  buildGenControls();
+  const grid = document.getElementById('clients-grid');
+  grid.innerHTML = `<div style="font-size:13px;color:var(--muted);font-family:'DM Mono',monospace;padding:20px 0">Loading clients…</div>`;
   try {
     await loadClients();
-    // Migrate localStorage data if any
-    const localClients = JSON.parse(localStorage.getItem('forge_clients') || '[]');
-    if (localClients.length > 0 && clients.length === 0) {
-      await migrateFromLocalStorage(localClients);
-    }
   } catch(err) {
     console.error('Init error:', err);
-    showError('Could not connect to database. Check your internet connection.');
-  } finally {
-    hideLoadingState();
-    renderClients();
-    updateBadge();
+    toast('Could not connect to the database. Check your internet connection.', 'error');
   }
+  renderClients();
 }
 
-function showLoadingState(msg) {
-  const grid = document.getElementById('clients-grid');
-  if(grid) grid.innerHTML = `<div style="font-size:13px;color:var(--muted);font-family:'DM Mono',monospace;padding:20px 0">${msg}</div>`;
-}
-function hideLoadingState() {}
-
-// ── MIGRATE FROM LOCALSTORAGE ──
-async function migrateFromLocalStorage(localClients) {
-  const bar = document.createElement('div');
-  bar.style = 'background:var(--accent-dim);border:1px solid var(--accent-border);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:var(--accent)';
-  bar.textContent = `Migrating ${localClients.length} client(s) from local storage to database...`;
-  document.querySelector('.clients-panel').prepend(bar);
-  for (const c of localClients) {
-    try {
-      const profileData = buildProfileFromObject(c);
-      await sb.insert('clients', { ...profileData, id: c.id });
-      // Migrate versions
-      for (const v of (c.versions || [])) {
-        await sb.insert('client_versions', { client_id: c.id, label: v.label, saved_at: v.savedAt, data: v.data });
-      }
-      // Migrate generations
-      for (const g of (c.generations || [])) {
-        await sb.insert('generations', { client_id: c.id, saved_at: g.savedAt, saved_at_iso: g.savedAtISO||new Date().toISOString(), output_type: g.outputType||'', stage: g.stage||'', goal: g.goal||'', angle: g.angle||'', length: g.length||'', winner: g.winner||'', concepts: g.concepts||[], hooks: g.hooks||[] });
-      }
-    } catch(e) { console.warn('Migration error for client', c.id, e); }
-  }
-  localStorage.removeItem('forge_clients');
-  await loadClients();
-  bar.textContent = `✓ Migrated ${localClients.length} client(s) successfully.`;
-  setTimeout(() => bar.remove(), 4000);
-}
-
-// ── LOAD CLIENTS ──
 async function loadClients() {
   clients = await sb.getAll('clients', 'updated_at.desc') || [];
 }
-
 async function loadClientVersions(clientId) {
-  clientVersions[clientId] = await sb.getWhere('client_versions','client_id',clientId,'saved_at.desc') || [];
+  try { clientVersions[clientId] = await sb.getWhere('client_versions','client_id',clientId,'saved_at.desc') || []; }
+  catch(e) { console.warn('Could not load versions:', e); clientVersions[clientId] = clientVersions[clientId] || []; }
 }
-
 async function loadClientGenerations(clientId) {
-  clientGenerations[clientId] = await sb.getWhere('generations','client_id',clientId,'saved_at_iso.desc') || [];
+  try { clientGenerations[clientId] = await sb.getWhere('generations','client_id',clientId,'saved_at_iso.desc') || []; }
+  catch(e) { console.warn('Could not load generations:', e); clientGenerations[clientId] = clientGenerations[clientId] || []; }
 }
 
-// ── PANEL NAVIGATION ──
-function showPanel(name) {
-  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.bnav-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('panel-'+name).classList.add('active');
-  const idx = {clients:0,form:1,generate:2}[name];
-  const tabs = document.querySelectorAll('.tab');
-  if(tabs[idx]) tabs[idx].classList.add('active');
-  const bnavIds = ['bnav-clients','bnav-form','bnav-generate'];
-  const bEl = document.getElementById(bnavIds[idx]);
-  if(bEl) bEl.classList.add('active');
-  if(name==='generate') document.getElementById('no-client-warn').style.display = activeClientId ? 'none' : 'block';
+// ── NAVIGATION ──
+function goHome() {
+  document.body.classList.remove('in-ws');
+  document.getElementById('view-workspace').classList.remove('active');
+  document.getElementById('view-home').classList.add('active');
+  renderClients();
   window.scrollTo(0,0);
 }
 
-// ── CLIENTS RENDER ──
+function openWorkspace(id, tab) {
+  const switching = id !== activeClientId;
+  activeClientId = id;
+  viewingVersionIdx = null;
+  hideVersionBanner();
+  if (switching) clearOutputPanel();
+
+  const c = id ? clients.find(x => x.id === id) : null;
+  if (c) {
+    fillForm(c);
+    document.getElementById('form-title').textContent = c.bizname || 'Client';
+    document.getElementById('delete-btn').style.display = 'inline-flex';
+    document.getElementById('version-slot').innerHTML = '';
+    // load side data in the background; renders when ready
+    loadClientVersions(id).then(() => renderVersionBar(id));
+    loadClientGenerations(id).then(() => { renderHistory(); });
+    loadClientFiles(id);
+  } else {
+    clearForm();
+    document.getElementById('form-title').textContent = 'New Client Profile';
+    document.getElementById('delete-btn').style.display = 'none';
+    document.getElementById('version-slot').innerHTML = '';
+    renderHistory();
+    renderFilesList(null);
+  }
+  updateCrumb();
+  document.body.classList.add('in-ws');
+  document.getElementById('view-home').classList.remove('active');
+  document.getElementById('view-workspace').classList.add('active');
+  showTab(tab || 'profile');
+}
+
+function showTab(name) {
+  currentTab = name;
+  ['profile','generate','history'].forEach(t => {
+    document.getElementById('wtab-'+t).classList.toggle('active', t===name);
+    const b = document.getElementById('bnav-'+t);
+    if (b) b.classList.toggle('active', t===name);
+  });
+  document.querySelectorAll('#ws-tabs .tab').forEach(t => t.classList.toggle('active', t.dataset.tab===name));
+  if (name === 'generate') updateProfileHint();
+  if (name === 'history') renderHistory();
+  window.scrollTo(0,0);
+}
+
+function updateCrumb() {
+  const c = clients.find(x => x.id === activeClientId);
+  document.getElementById('crumb-name').textContent = c ? (c.bizname || 'Client') : 'New client';
+}
+
+function clearOutputPanel() {
+  lastOutputData = null; lastOutputClient = null; lastOutputMeta = null; activeHookIdx = {};
+  const out = document.getElementById('output-section');
+  if (out) {
+    out.style.display = 'none';
+    document.getElementById('output-meta').innerHTML = '';
+    document.getElementById('dl-bar-area').innerHTML = '';
+    document.getElementById('winner-area').innerHTML = '';
+    document.getElementById('concepts-area').innerHTML = '';
+  }
+  const err = document.getElementById('error-box'); if (err) err.style.display = 'none';
+  const empty = document.getElementById('empty-state'); if (empty) empty.style.display = 'block';
+}
+
+// ── CLIENT LIST ──
 function renderClients() {
   const grid = document.getElementById('clients-grid');
+  const searchEl = document.getElementById('client-search');
+  searchEl.style.display = clients.length > 5 ? 'block' : 'none';
+  const q = (searchEl.value || '').trim().toLowerCase();
+  const list = q ? clients.filter(c => ((c.bizname||'')+' '+(c.contact||'')).toLowerCase().includes(q)) : clients;
+
   grid.innerHTML = '';
-  clients.forEach(c => {
-    const genCount = (clientGenerations[c.id]||[]).length;
-    const vCount = (clientVersions[c.id]||[]).length;
+  list.forEach(c => {
+    const gens = clientGenerations[c.id];
+    const vers = clientVersions[c.id];
+    const stats = [];
+    if (gens && gens.length) stats.push(`${gens.length} generation${gens.length!==1?'s':''}`);
+    if (vers && vers.length) stats.push(`${vers.length} version${vers.length!==1?'s':''}`);
     const card = document.createElement('div');
-    card.className = 'client-card'+(c.id===activeClientId?' selected':'');
+    card.className = 'client-card';
+    card.dataset.action = 'open-client';
+    card.dataset.id = c.id;
     card.innerHTML = `<div class="client-name">${esc(c.bizname||'Unnamed Client')}</div>
       <div class="client-meta">${esc(c.contact||'')}${c.spend?' · '+esc(c.spend):''}</div>
-      <div style="margin-top:6px;display:flex;gap:8px;font-size:11px;font-family:'DM Mono',monospace;color:var(--dim)">
-        ${genCount>0?`<span>${genCount} generation${genCount!==1?'s':''}</span>`:''}
-        ${vCount>0?`<span>${vCount} version${vCount!==1?'s':''}</span>`:''}
-      </div>
-      <div style="margin-top:10px;display:flex;gap:6px">
-        <button class="btn" style="font-size:11px;padding:4px 10px" onclick="event.stopPropagation();editClient('${c.id}')">Edit</button>
-        <button class="btn" style="font-size:11px;padding:4px 10px" onclick="event.stopPropagation();loadAndGenerate('${c.id}')">Generate →</button>
-      </div>`;
-    card.onclick = () => { activeClientId=c.id; updateBadge(); renderClients(); };
+      ${stats.length?`<div class="client-stats">${stats.map(s=>`<span>${esc(s)}</span>`).join('')}</div>`:''}
+      <div class="client-open"><span class="client-open-label">Open →</span></div>`;
     grid.appendChild(card);
   });
+  if (q && !list.length) {
+    const none = document.createElement('div');
+    none.style.cssText = 'font-size:13px;color:var(--dim);font-style:italic;padding:8px 0';
+    none.textContent = 'No clients match your search.';
+    grid.appendChild(none);
+  }
   const n = document.createElement('div');
   n.className = 'new-client-card';
+  n.dataset.action = 'new-client';
   n.innerHTML = '<div class="plus">+</div><span>New client profile</span>';
-  n.onclick = newClient;
   grid.appendChild(n);
-}
-
-function newClient() {
-  editingClientId=null;
-  clearForm();
-  document.getElementById('form-title').textContent='New Client Profile';
-  document.getElementById('delete-btn').style.display='none';
-  const vb = document.getElementById('version-bar'); if(vb) vb.remove();
-  const gh = document.getElementById('gen-history-section'); if(gh) gh.remove();
-  showPanel('form');
-}
-
-async function editClient(id) {
-  const c = clients.find(x=>x.id===id);
-  if(!c) return;
-  editingClientId = id;
-  fillForm(c);
-  document.getElementById('form-title').textContent='Edit — '+(c.bizname||'Client');
-  document.getElementById('delete-btn').style.display='inline-flex';
-  // Load versions and generations
-  await Promise.all([loadClientVersions(id), loadClientGenerations(id), loadClientFiles(id)]);
-  renderVersionBar(id);
-  renderGenHistory(id);
-  showPanel('form');
-}
-
-function loadAndGenerate(id) {
-  activeClientId=id;
-  updateBadge();
-  renderClients();
-  showPanel('generate');
 }
 
 // ── PROFILE SNAPSHOT ──
@@ -839,161 +1004,193 @@ function buildProfileFromObject(c) {
   return out;
 }
 
-// ── SAVE CLIENT ──
+// ── SAVE / DELETE CLIENT ──
 async function saveClient() {
+  if (viewingVersionIdx !== null) { toast('You are viewing an old version. Restore it or go back to current before saving.', 'error'); return; }
   const snapshot = buildProfileSnapshot();
-  const btn = document.querySelector('.btn-primary');
-  if(btn) { btn.textContent='Saving...'; btn.disabled=true; }
+  if (!snapshot.bizname.trim()) { toast('Give the client a business name first.', 'error'); return; }
+  const btn = document.getElementById('save-btn');
+  btn.textContent = 'Saving…'; btn.disabled = true;
   try {
-    if(editingClientId) {
-      const existing = clients.find(x=>x.id===editingClientId);
-      // Check if anything changed — if so, save a version
-      if(existing) {
+    if (activeClientId) {
+      const existing = clients.find(x => x.id === activeClientId);
+      // Snapshot the previous state as a version whenever something changed
+      if (existing) {
         const currentData = JSON.stringify(buildProfileFromObject(existing));
-        const newData = JSON.stringify(snapshot);
-        if(currentData !== newData) {
-          const now = new Date();
-          const label = now.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+' '+now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
-          await sb.insert('client_versions', { client_id: editingClientId, label, data: buildProfileFromObject(existing) });
+        if (currentData !== JSON.stringify(snapshot)) {
+          await sb.insert('client_versions', { client_id: activeClientId, label: humanNow(), saved_at: new Date().toISOString(), data: buildProfileFromObject(existing) });
         }
       }
-      await sb.update('clients','id',editingClientId, snapshot);
+      await sb.update('clients','id',activeClientId, snapshot);
     } else {
       const id = 'c'+Date.now();
-      editingClientId = id;
-      activeClientId = id;
       await sb.insert('clients', { ...snapshot, id });
+      activeClientId = id;
+      document.getElementById('delete-btn').style.display = 'inline-flex';
     }
     await loadClients();
-    updateBadge();
-    renderClients();
-    showPanel('clients');
+    await loadClientVersions(activeClientId);
+    renderVersionBar(activeClientId);
+    document.getElementById('form-title').textContent = snapshot.bizname;
+    updateCrumb();
+    toast('Profile saved', 'success');
   } catch(err) {
-    alert('Save failed: '+err.message);
+    toast('Save failed: ' + err.message, 'error');
   } finally {
-    if(btn) { btn.textContent='Save Profile'; btn.disabled=false; }
+    btn.textContent = 'Save Profile'; btn.disabled = false;
   }
 }
 
 async function deleteClient() {
-  if(!editingClientId||!confirm('Delete this client and all their data? This cannot be undone.')) return;
+  if (!activeClientId || !confirm('Delete this client and all their data? This cannot be undone.')) return;
   try {
-    await sb.delete('clients','id',editingClientId);
-    if(activeClientId===editingClientId) activeClientId=null;
-    editingClientId=null;
+    await sb.delete('clients','id',activeClientId);
+    activeClientId = null;
     await loadClients();
-    updateBadge();
-    renderClients();
-    showPanel('clients');
-  } catch(err) { alert('Delete failed: '+err.message); }
+    goHome();
+    toast('Client deleted', 'success');
+  } catch(err) { toast('Delete failed: ' + err.message, 'error'); }
 }
 
 // ── VERSION BAR ──
 function renderVersionBar(clientId) {
-  const existing = document.getElementById('version-bar'); if(existing) existing.remove();
+  const slot = document.getElementById('version-slot');
   const versions = clientVersions[clientId] || [];
-  if(versions.length===0) return;
-  const bar = document.createElement('div');
-  bar.id='version-bar';
-  bar.className='version-bar';
-  bar.innerHTML=`
-    <div class="version-select-wrap">
-      <label>Profile version</label>
-      <select id="version-select" onchange="loadVersion(this.value)">
-        <option value="current">Current (latest)</option>
-        ${versions.map((v,i)=>`<option value="${i}">${esc(v.label||v.saved_at)}</option>`).join('')}
-      </select>
-    </div>
-    <span class="version-badge">${versions.length} version${versions.length!==1?'s':''}</span>`;
-  document.querySelector('.form-header').after(bar);
+  if (!versions.length) { slot.innerHTML = ''; return; }
+  slot.innerHTML = `
+    <div class="version-bar" id="version-bar">
+      <div class="version-select-wrap">
+        <label>Profile version</label>
+        <select id="version-select">
+          <option value="current">Current (latest)</option>
+          ${versions.map((vv,i)=>`<option value="${i}">${esc(vv.label||vv.saved_at||('Version '+(versions.length-i)))}</option>`).join('')}
+        </select>
+      </div>
+      <span class="version-badge">${versions.length} version${versions.length!==1?'s':''}</span>
+    </div>`;
+  document.getElementById('version-select').addEventListener('change', e => loadVersion(e.target.value));
 }
 
 function loadVersion(val) {
-  if(val==='current') {
-    const c=clients.find(x=>x.id===editingClientId); if(c) fillForm(c); return;
+  if (val === 'current') {
+    viewingVersionIdx = null;
+    hideVersionBanner();
+    const c = clients.find(x => x.id === activeClientId);
+    if (c) fillForm(c);
+    return;
   }
-  const versions = clientVersions[editingClientId]||[];
-  const v=versions[parseInt(val)]; if(v) fillForm(v.data);
+  const versions = clientVersions[activeClientId] || [];
+  const vv = versions[parseInt(val)];
+  if (!vv) return;
+  viewingVersionIdx = parseInt(val);
+  fillForm(vv.data || {});
+  const banner = document.getElementById('version-banner');
+  banner.innerHTML = `Viewing snapshot from <strong>${esc(vv.label||vv.saved_at||'earlier')}</strong> — read-only. Autosave is paused so this can't overwrite the live profile.<br>
+    <button class="btn btn-primary" data-action="version-restore">Restore this version</button>
+    <button class="btn" data-action="version-back">Back to current</button>`;
+  banner.style.display = 'block';
+  banner.scrollIntoView({behavior:'smooth', block:'nearest'});
 }
 
-// ── GENERATION HISTORY ──
-function renderGenHistory(clientId) {
-  const existing=document.getElementById('gen-history-section'); if(existing) existing.remove();
-  const generations=clientGenerations[clientId]||[];
-  const section=document.createElement('div');
-  section.id='gen-history-section';
-  section.className='gen-history';
-  const count=generations.length;
-  section.innerHTML=`
-    <div class="gen-history-title">
-      <span>Generation History</span>
-      ${count>0?`<button class="gen-batch-btn del" onclick="clearAllGenerations('${clientId}')">Clear all</button>`:''}
-    </div>
-    <div class="gen-history-sub">${count} saved generation${count!==1?'s':''} for this client</div>
-    <div id="gen-history-list">
-      ${count===0?'<div class="gen-history-empty">No generations saved yet. Generate scripts and they\'ll appear here.</div>':
-        generations.map((g)=>`
-          <div class="gen-batch">
-            <div class="gen-batch-header">
-              <div>
-                <div class="gen-batch-meta">${esc(g.saved_at||'')} · ${(g.concepts||[]).length} script${(g.concepts||[]).length!==1?'s':''} · ${esc(g.stage||'')} · ${esc(g.goal||'')}</div>
-                <div class="gen-batch-summary">${esc(g.angle||'')} · ${esc(g.length||'')}</div>
-              </div>
-              <div class="gen-batch-actions">
-                <button class="gen-batch-btn load" onclick="loadGeneration('${clientId}',${g.id})">Load</button>
-                <button class="gen-batch-btn del" onclick="deleteGeneration(${g.id},'${clientId}')">Delete</button>
-              </div>
-            </div>
-          </div>`).join('')
-      }
+function hideVersionBanner() {
+  const b = document.getElementById('version-banner');
+  if (b) { b.style.display = 'none'; b.innerHTML = ''; }
+  const sel = document.getElementById('version-select');
+  if (sel) sel.value = 'current';
+}
+
+async function restoreVersion() {
+  const versions = clientVersions[activeClientId] || [];
+  const vv = versions[viewingVersionIdx];
+  if (!vv || !activeClientId) return;
+  try {
+    const existing = clients.find(x => x.id === activeClientId);
+    if (existing) {
+      // keep the state being replaced as its own version so nothing is lost
+      await sb.insert('client_versions', { client_id: activeClientId, label: humanNow() + ' (before restore)', saved_at: new Date().toISOString(), data: buildProfileFromObject(existing) });
+    }
+    await sb.update('clients','id',activeClientId, buildProfileFromObject(vv.data || {}));
+    await loadClients();
+    await loadClientVersions(activeClientId);
+    viewingVersionIdx = null;
+    hideVersionBanner();
+    renderVersionBar(activeClientId);
+    const c = clients.find(x => x.id === activeClientId);
+    if (c) { fillForm(c); document.getElementById('form-title').textContent = c.bizname || 'Client'; updateCrumb(); }
+    toast('Version restored', 'success');
+  } catch(err) { toast('Restore failed: ' + err.message, 'error'); }
+}
+
+// ── GENERATION HISTORY (History tab) ──
+function renderHistory() {
+  const listEl = document.getElementById('history-list');
+  const subEl = document.getElementById('history-sub');
+  const gens = activeClientId ? (clientGenerations[activeClientId] || []) : [];
+  subEl.textContent = activeClientId
+    ? `${gens.length} saved generation${gens.length!==1?'s':''} for this client. Load one to view and re-download it.`
+    : 'Save the profile first — generations will be stored here automatically.';
+  if (!gens.length) {
+    listEl.innerHTML = '<div class="gen-history-empty">No generations saved yet. Generate concepts and they\'ll appear here.</div>';
+    return;
+  }
+  listEl.innerHTML = gens.map(g => {
+    const n = (g.concepts||[]).length;
+    const isLegacy = g.output_type && g.output_type !== 'concepts';
+    return `<div class="gen-batch">
+      <div class="gen-batch-header">
+        <div>
+          <div class="gen-batch-meta">${esc(g.saved_at||'')} · ${n} ${isLegacy?'script':'concept'}${n!==1?'s':''}${isLegacy?' · legacy':''}</div>
+          <div class="gen-batch-summary">${esc(stageLabel(g.stage))} · ${esc(goalLabel(g.goal))} · ${esc(angleLabel(g.angle))} · ${esc(lengthLabel(g.length))}</div>
+        </div>
+        <div class="gen-batch-actions">
+          <button class="gen-batch-btn load" data-action="gen-load" data-gid="${esc(String(g.id))}">Load</button>
+          <button class="gen-batch-btn del" data-action="gen-del" data-gid="${esc(String(g.id))}">Delete</button>
+        </div>
+      </div>
     </div>`;
-  document.querySelector('#panel-form .page-wrap').appendChild(section);
+  }).join('') + `<div style="margin-top:14px"><button class="gen-batch-btn del" data-action="gen-clear">Clear all generations</button></div>`;
 }
 
-async function loadGeneration(clientId, genId) {
-  const generations = clientGenerations[clientId]||[];
-  const gen = generations.find(g=>g.id===genId||g.id===parseInt(genId));
-  if(!gen) return;
-  activeClientId=clientId;
-  updateBadge();
-  const c=clients.find(x=>x.id===clientId);
-  showPanel('generate');
-  setTimeout(()=>{
-    const data={concepts:gen.concepts||[],winner_pick:gen.winner||'',hooks:gen.hooks||[]};
-    lastOutputData=data; lastOutputClient=c;
-    renderOutputDisplay(data,c,gen.stage||'',gen.goal||'',gen.length||'');
-  },100);
+function loadGenerationById(gid) {
+  const gens = clientGenerations[activeClientId] || [];
+  const gen = gens.find(g => String(g.id) === String(gid));
+  if (!gen) return;
+  const c = clients.find(x => x.id === activeClientId);
+  lastOutputData = normalizeGeneration({ concepts: gen.concepts || [], winner_pick: gen.winner || '', hooks: gen.hooks || [] });
+  lastOutputClient = c;
+  lastOutputMeta = { stage: gen.stage || '', goal: gen.goal || '', length: gen.length || '' };
+  activeHookIdx = {};
+  showTab('generate');
+  renderOutputDisplay();
 }
 
-async function deleteGeneration(genId, clientId) {
-  if(!confirm('Delete this generation?')) return;
+async function deleteGenerationById(gid) {
+  if (!confirm('Delete this generation?')) return;
   try {
-    await sb.delete('generations','id',genId);
-    await loadClientGenerations(clientId);
-    renderGenHistory(clientId);
-    const ci=clients.findIndex(x=>x.id===clientId);
-    if(ci>-1) renderClients();
-  } catch(err) { alert('Delete failed: '+err.message); }
+    await sb.delete('generations','id',gid);
+    await loadClientGenerations(activeClientId);
+    renderHistory();
+  } catch(err) { toast('Delete failed: ' + err.message, 'error'); }
 }
 
-async function clearAllGenerations(clientId) {
-  if(!confirm('Delete all saved generations for this client? This cannot be undone.')) return;
+async function clearAllGenerations() {
+  if (!activeClientId || !confirm('Delete all saved generations for this client? This cannot be undone.')) return;
   try {
-    await sb.query('generations','DELETE',null,`?client_id=eq.${encodeURIComponent(clientId)}`);
-    clientGenerations[clientId]=[];
-    renderGenHistory(clientId);
-  } catch(err) { alert('Clear failed: '+err.message); }
+    await sb.query('generations','DELETE',null,`?client_id=eq.${encodeURIComponent(activeClientId)}`);
+    clientGenerations[activeClientId] = [];
+    renderHistory();
+  } catch(err) { toast('Clear failed: ' + err.message, 'error'); }
 }
 
 // ── FORM UTILS ──
 function v(id){return(document.getElementById(id)||{}).value||'';}
 function getChecked(gId){return Array.from(document.querySelectorAll('#'+gId+' .check-opt.checked input')).map(i=>i.value);}
-function clearForm(){document.querySelectorAll('#panel-form input,#panel-form textarea').forEach(el=>el.value='');document.querySelectorAll('.check-opt').forEach(el=>el.classList.remove('checked'));}
+function clearForm(){document.querySelectorAll('#wtab-profile input[type=text],#wtab-profile textarea').forEach(el=>el.value='');document.querySelectorAll('.check-opt').forEach(el=>el.classList.remove('checked'));}
 function fillForm(c){
   const s=(id,val)=>{const el=document.getElementById(id);if(el)el.value=val||'';};
   ['bizname','contact','offer','price','offer-age','geo','icp','before','after','objections','skepticism','voice',
    'proof1','proof2','clients-total','credibility','competitors','differentiator','past-ads','best-segments',
-   'spend','cpl','funnel','metrics','winning-ads','brand','inspo','limits','talent','misc'].forEach(k=>s('f-'+k,c[k]||c[k.replace('-','_')]||''));
+   'spend','cpl','funnel','metrics','winning-ads','brand','inspo','limits','talent','misc'].forEach(k=>s('f-'+k,c[k]||c[k.replace(/-/g,'_')]||''));
   ['close-type','platforms'].forEach(gId=>{
     const vals=c[gId]||[];
     document.querySelectorAll('#'+gId+' .check-opt').forEach(opt=>{
@@ -1003,270 +1200,373 @@ function fillForm(c){
   });
 }
 
-function updateBadge(){
-  const badge=document.getElementById('active-client-badge');
-  const c=clients.find(x=>x.id===activeClientId);
-  if(c){badge.textContent=c.bizname||'Client';badge.style.display='inline-block';}
-  else badge.style.display='none';
+// ── AUTOSAVE ──
+// Only PATCHes an existing, explicitly-saved client. Never creates rows, and is
+// suspended entirely while viewing an old version — that combination used to
+// silently overwrite live profiles with stale data.
+let autosaveTimer=null;
+function triggerAutosave(){
+  if (viewingVersionIdx !== null) return;
+  if (!activeClientId) return;
+  if (!clients.find(x => x.id === activeClientId)) return;
+  clearTimeout(autosaveTimer);
+  autosaveTimer=setTimeout(async()=>{
+    if (viewingVersionIdx !== null || !activeClientId) return;
+    const snapshot=buildProfileSnapshot();
+    if(!snapshot.bizname.trim()) return;
+    try{
+      await sb.update('clients','id',activeClientId,snapshot);
+      const c=clients.find(x=>x.id===activeClientId);
+      if(c) Object.assign(c, snapshot);
+      updateCrumb();
+      const ind=document.getElementById('autosave-indicator');
+      ind.style.opacity='1';
+      setTimeout(()=>{ind.style.opacity='0';},2000);
+    }catch(e){console.warn('Autosave failed:',e);}
+  },1200);
 }
+document.querySelectorAll('#wtab-profile input,#wtab-profile textarea').forEach(el=>el.addEventListener('input',triggerAutosave));
 
 // Checkboxes
 document.querySelectorAll('.check-opt').forEach(opt=>opt.addEventListener('click',function(e){
   if(e.target.tagName==='INPUT') return;
   opt.classList.toggle('checked');
+  triggerAutosave();
 }));
 
-// Badge groups
-['output-type-badges','stage-badges','goal-badges','length-badges','qty-badges','hook-qty-badges'].forEach(gId=>{
-  document.querySelectorAll('#'+gId+' .badge').forEach(b=>b.addEventListener('click',()=>{
-    document.querySelectorAll('#'+gId+' .badge').forEach(x=>x.classList.remove('active'));
-    b.classList.add('active');
-    if(gId==='output-type-badges') syncGenControls();
-  }));
-});
+// Client search
+document.getElementById('client-search').addEventListener('input', renderClients);
+
+// ── GENERATION CONTROLS (rendered from the config objects) ──
+function buildGenControls() {
+  const badge = (val, label, active) => `<span class="badge${active?' active':''}" data-val="${esc(val)}">${esc(label)}</span>`;
+  document.getElementById('stage-badges').innerHTML = Object.keys(STAGES).map((k,i)=>badge(k,STAGES[k].label,i===0)).join('');
+  document.getElementById('goal-badges').innerHTML = Object.keys(GOALS).map((k,i)=>badge(k,GOALS[k].label,i===0)).join('');
+  document.getElementById('length-badges').innerHTML = LENGTHS.map(l=>badge(l.id,l.label,l.id===DEFAULT_LENGTH)).join('');
+  document.getElementById('qty-badges').innerHTML = [1,2,3,4,5].map(n=>badge(String(n),String(n),n===2)).join('');
+  document.getElementById('angle-select').innerHTML = Object.keys(ANGLES).map(k=>`<option value="${esc(k)}">${esc(ANGLES[k].label)}</option>`).join('');
+  document.getElementById('angle-tooltip-panel').innerHTML = `<div class="tooltip-panel-title">Script Angle Guide</div>` +
+    Object.keys(ANGLES).map(k=>`<div class="tooltip-angle"><div class="tooltip-angle-name">${esc(ANGLES[k].label)}</div><div class="tooltip-angle-desc">${esc(ANGLES[k].tooltip)}</div></div>`).join('');
+  ['stage-badges','goal-badges','length-badges','qty-badges'].forEach(gId=>{
+    document.getElementById(gId).addEventListener('click',e=>{
+      const b=e.target.closest('.badge'); if(!b) return;
+      document.querySelectorAll('#'+gId+' .badge').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+    });
+  });
+}
 function getActive(gId){const el=document.querySelector('#'+gId+' .badge.active');return el?el.dataset.val:'';}
 
-// The hook count only applies to "Scripts + hooks". For "Hook bank" the main
-// quantity control already is the hook count, so relabel it rather than show both.
-function syncGenControls(){
-  const outputType=getActive('output-type-badges');
-  const hookWrap=document.getElementById('hook-qty-wrap');
-  const qtyLabel=document.getElementById('qty-label');
-  if(hookWrap) hookWrap.style.display = outputType==='full_batch' ? '' : 'none';
-  if(qtyLabel) qtyLabel.textContent = outputType==='hooks_only' ? 'How many hooks' : 'How many scripts';
+function updateProfileHint() {
+  const el = document.getElementById('profile-hint');
+  const c = clients.find(x => x.id === activeClientId);
+  if (!c) {
+    el.innerHTML = '<strong>Unsaved profile.</strong> Save the client profile before generating.';
+    el.style.display = 'block';
+    return;
+  }
+  const hints = [];
+  if (!(c.proof1||'').trim() && !(c.proof2||'').trim()) hints.push('<strong>No proof points</strong> — scripts will lean on mechanism and authority only.');
+  if (!(c.voice||'').trim()) hints.push('<strong>No verbatim customer language</strong> — real quotes make sharper hooks.');
+  if (!(c.icp||'').trim()) hints.push('<strong>No ideal customer defined</strong> — the callout will be generic.');
+  if (!(c.offer||'').trim()) hints.push('<strong>No core offer</strong> — this is the single most important field.');
+  if (!hints.length) { el.style.display = 'none'; return; }
+  el.innerHTML = hints.slice(0,2).join('<br>');
+  el.style.display = 'block';
 }
-syncGenControls();
-
-// ── AUTOSAVE ──
-let autosaveTimer=null;
-const savedIndicator=document.createElement('span');
-savedIndicator.id='autosave-indicator';
-savedIndicator.style.cssText="font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);opacity:0;transition:opacity 0.4s";
-savedIndicator.textContent='autosaved';
-document.querySelector('.form-actions').appendChild(savedIndicator);
-
-function triggerAutosave(){
-  const hasName=(document.getElementById('f-bizname').value||'').trim();
-  if(!hasName) return;
-  clearTimeout(autosaveTimer);
-  autosaveTimer=setTimeout(async()=>{
-    if(!editingClientId){editingClientId='c'+Date.now();activeClientId=editingClientId;}
-    const snapshot=buildProfileSnapshot();
-    try{
-      const existing=clients.find(x=>x.id===editingClientId);
-      if(existing){
-        await sb.update('clients','id',editingClientId,snapshot);
-      } else {
-        await sb.insert('clients',{...snapshot,id:editingClientId});
-      }
-      await loadClients();
-      updateBadge(); renderClients();
-      savedIndicator.style.opacity='1';
-      setTimeout(()=>{savedIndicator.style.opacity='0';},2000);
-    }catch(e){console.warn('Autosave failed:',e);}
-  },1200);
-}
-document.querySelectorAll('#panel-form input,#panel-form textarea').forEach(el=>el.addEventListener('input',triggerAutosave));
 
 // ── PROMPT BUILDER ──
-function buildPrompt(client,outputType,stage,goal,angle,length,qty,hookQty){
-  const angles={
-    problem_agitation:'Problem agitation to mechanism: Open with a visceral scroll-stopping statement about their core pain. Force self-identification. Bridge to the mechanism as the only logical solution.',
-    proof_led:'Proof-led credibility: Open with the single most powerful client result. Build credibility in the first 5 seconds. Connect that result to the process so the viewer understands why it worked.',
-    contrarian:'Contrarian reframe: Challenge a widely held belief the audience has. Create an "I never thought about it that way" moment. Position the client as the smarter alternative.',
-    mechanism_reveal:'Mechanism reveal: Demonstrate what makes this offer uniquely effective. Educate the viewer on the specific system. Make them feel like they are learning something valuable.',
-    founder_story:'Founder / behind the scenes: Spokesperson shares a personal insight about what actually works. Builds parasocial trust. Positions them as a real expert not a polished actor.',
-    diagnostic:'Diagnostic / qualifier: Call out a specific symptom the ideal customer is experiencing right now. Make them feel seen and understood. Position the offer as the diagnosis and solution.',
-    math_leverage:'Math / leverage: Use a specific number or math equation in the first 3 seconds. Show how one metric if improved changes everything else downstream. Make the ROI case visceral and simple.'
-  };
-  const c=k=>(client[k]||'').trim();
-  const proofBlock=[c('proof1'),c('proof2')].filter(Boolean).join('\n');
-  return `You are an expert direct-response video ad creative strategist. Internalize this proven framework from high-converting Meta video ads.
+function buildPrompt(client, stage, goal, angle, lengthId, qty) {
+  const c = k => (client[k]||'').trim();
+  const L = LENGTHS.find(l => l.id === lengthId) || LENGTHS[4];
+  const proofBlock = [c('proof1'), c('proof2')].filter(Boolean).join('\n');
+  const line = (label, val) => val ? `${label}: ${val}` : '';
+  const profile = [
+    line('Business', c('bizname')),
+    line('Contact', c('contact')),
+    line('Core offer', c('offer')),
+    line('Price', c('price')),
+    line('Offer age', c('offer-age')),
+    line('How the sale closes', (client['close-type']||[]).join(', ')),
+    line('Markets / geos', c('geo')),
+    line('Platforms', (client['platforms']||[]).join(', ')),
+    line('Monthly ad spend', c('spend')),
+    line('Target CPL', c('cpl')),
+    line('Ideal customer (ICP)', c('icp')),
+    line('Their life before', c('before')),
+    line('What changes after', c('after')),
+    line('Main objections', c('objections')),
+    line('What makes them skeptical', c('skepticism')),
+    line('Exact customer language (verbatim — use it)', c('voice')),
+    line('Credibility markers', c('credibility')),
+    line('Total clients served', c('clients-total')),
+    line('Funnel after the click', c('funnel')),
+    line('Success metrics', c('metrics')),
+    line('Competitors', c('competitors')),
+    line('Main differentiator', c('differentiator')),
+    line('Ads they have tried before (worked / flopped)', c('past-ads')),
+    line('Best-performing audience segments', c('best-segments')),
+    line('Existing top-performing ads', c('winning-ads')),
+    line('Brand guidelines', c('brand')),
+    line('Creative styles they love', c('inspo')),
+    line('Spokesperson / talent', c('talent')),
+    line('HARD LIMITS (NEVER VIOLATE)', c('limits')),
+    line('Other notes', c('misc')),
+  ].filter(Boolean).join('\n');
 
-FORGE FRAMEWORK — VOICE & STYLE:
-- Opens mid-thought or with a direct callout — never "hey guys" or slow intros
+  return `You are Forge Marketing's senior direct-response video scriptwriter. You write punchy, straightforward video ad scripts for Meta-first paid social. Zero fluff. Every line earns its place.
+
+VOICE & STYLE — NON-NEGOTIABLE:
+- Open mid-thought or with a direct callout. Never "hey guys," never a slow intro.
 - Short declarative sentences. Fragments are fine. Rhythm matters.
-- Contractions always. Casual but authoritative. The "craziest part" reframe builds anticipation before proof.
-- Double CTA structure: early CTA for people ready to act, then proof stack, then final CTA for people who needed convincing
-- Write [pause] where the spokesperson should let something land
-- Proof deployed at peak skepticism — after the mechanism, never before
-- NEVER fabricate proof — only use what is explicitly provided below
+- Contractions always. Casual but authoritative.
+- Write [pause] where the spokesperson should let a line land.
+- Use the client's exact customer language wherever it is provided.
+- NEVER fabricate proof, numbers, or testimonials — only use what is explicitly provided below.
+- Respect every hard limit absolutely.
 
-FIVE-PILLAR STRUCTURE (mandatory order):
-1. HOOK (0-2 seconds): Scroll-stop. Forces self-identification. Creates open loop. First words ARE the hook.
-2. SUPER HOOK (2-5 seconds): Deepen with a specific credible claim that makes it impossible to look away.
-3. VALUE / MECHANISM: The insight or system that makes the viewer believe this is different.
-4. SOCIAL PROOF: Specific numbers only. Deployed after mechanism at peak skepticism.
-5. CTA: Single action. Low-friction. Early tease then full CTA after proof.
+THE FORGE STRUCTURE — every script follows this exact arc, in order:
+1. CALLOUT (0-3s): Name the target business type and/or ideal customer directly. "If you run a [X]..." / "[ICP]s —". The first words filter for exactly who this is for.
+2. HOOK — PAIN or PROOF (3-10s): Immediately hit their sharpest pain point, lead with the single strongest proof number, or pattern-interrupt. This is what stops the scroll.
+3. FULL OFFER, EARLY (by 5-15s): State the complete offer — deliverable, outcome, timeframe, guarantee if there is one. Do not tease it. Do not save it for later. Give the whole offer up front so people who are ready can act now.
+4. SOCIAL PROOF STACK (the long middle): Specific results with numbers, timeframes, and names or initials. Stack proof at peak skepticism. This is the longest section of the script.
+5. BUMPER CTA (the close): Mirror the callout to bookend the script. "If you're a [business type] or [ICP] dealing with [XYZ] — we solve [XYZ]. Book now." One clear action, low friction.
 
-HOOK TYPES (rotate — do not repeat same type across scripts):
-- Pain/Diagnostic | Contrarian | Number-led | Open loop | Direct callout | Mid-sentence cold open | Mechanism-led
+EXEMPLARS — these two scripts are the target style. Match their rhythm, sentence density, and structure. Do NOT reuse their wording, their industries' specifics, or their clients' facts.
+<exemplar_1>
+${EXEMPLARS[0]}
+</exemplar_1>
+<exemplar_2>
+${EXEMPLARS[1]}
+</exemplar_2>
 
 CLIENT PROFILE:
-Business: ${c('bizname')} | Contact: ${c('contact')}
-Offer: ${c('offer')}
-Price: ${c('price')} | Close: ${(client['close-type']||[]).join(', ')}
-Geo: ${c('geo')} | Platforms: ${(client['platforms']||[]).join(', ')} | Spend: ${c('spend')} | Target CPL: ${c('cpl')}
-ICP: ${c('icp')}
-Before: ${c('before')}
-After: ${c('after')}
-Objections: ${c('objections')}
-Skepticism: ${c('skepticism')}
-Customer language: ${c('voice')}
-PROOF (use only these): ${proofBlock||'None provided — focus on mechanism and authority.'}
-Credibility: ${c('credibility')} | Clients served: ${c('clients-total')}
-Funnel: ${c('funnel')} | Metrics: ${c('metrics')}
-Competitors: ${c('competitors')} | Differentiator: ${c('differentiator')}
-Talent: ${c('talent')} | Limits (NEVER VIOLATE): ${c('limits')}
-Winning ads: ${c('winning-ads')} | Inspo: ${c('inspo')}
+${profile}
+PROOF (use ONLY these — never invent): ${proofBlock || 'None provided — lean on mechanism and authority, and make no numeric claims.'}
 
-BRIEF: Output=${outputType} | Stage=${stage} | Goal=${goal} | Angle=${angles[angle]||angle} | Length=${length} | Qty=${qty}${outputType==='full_batch'?` | Hooks=${hookQty}`:''}
+BRIEF:
+Funnel stage: ${(STAGES[stage]||{}).prompt || stage}
+Primary goal: ${(GOALS[goal]||{}).prompt || goal}
+Script angle: ${(ANGLES[angle]||{}).prompt || angle}
+Video length: ${L.label} — target ${L.words[0]}-${L.words[1]} spoken words per script.
+Concepts: exactly ${qty}
 
-${outputType==='hooks_only'
-?`Generate exactly ${qty} hooks. Each is a standalone scroll-stop opening that runs 5-15 seconds read aloud — roughly 12-40 words. Not a one-liner, not a full script. Cover different hook types. For each: hook text, type label, one sentence on why it stops the scroll.
-JSON only: {"hooks":[{"hook":"...","type":"...","why":"..."}],"winner_pick":"..."}`
-:outputType==='full_batch'
-?`Generate exactly ${qty} full scripts at the video length above, AND exactly ${hookQty} hooks. Each hook is a standalone scroll-stop opening that runs 5-15 seconds read aloud — roughly 12-40 words. Not a one-liner, not a full script. Use a different hook type for each.
-JSON only: {"concepts":[{"title":"...","hook":"...","script":"...","directors_note":"...","why_it_converts":"..."}],"hook_bank":[{"hook":"...","type":"...","why":"..."}],"winner_pick":"..."}`
-:`Generate exactly ${qty} complete video scripts. Different hook types across scripts. Use client's exact customer language. Only include provided proof points. Respect all hard limits.
-JSON only, no markdown: {"concepts":[{"title":"...","hook":"...","script":"...","directors_note":"...","why_it_converts":"..."}],"winner_pick":"..."}`}`;
+OUTPUT — generate exactly ${qty} concepts. A concept is a complete sellable package:
+- "title": short internal concept name.
+- "script": one full script following THE FORGE STRUCTURE at the target word count. The opening line of the script IS the primary hook.
+- "hook": the primary hook — the script's actual opening line(s), 12-40 words, exactly as they appear at the top of the script.
+- "alt_hooks": exactly 4 alternate hooks. Each is a drop-in replacement for the script's opening (callout + hook), 12-40 words, written so the rest of the script still flows if it is swapped in. Use 4 different hook types (Pain, Proof-led, Contrarian, Number-led, Open loop, Direct callout, Mechanism-led) and none may repeat the primary hook's type. Label each with "type" and give a one-sentence "why" it stops the scroll.
+- "brief": a creator brief grounded in the Spokesperson/talent, Brand guidelines, Creative styles, and Hard limits fields above:
+  - "wardrobe": what the talent should wear — specific and practical.
+  - "setting": where and how to film — location, framing, background.
+  - "delivery": how to talk — energy, pacing, which lines to punch, where the [pause]s matter most.
+  - "tone_notes": the emotional register — what this should feel like, and what to avoid.
+- "why_it_converts": one short paragraph on the direct-response logic behind this concept.
+Across concepts, vary the callout target, hook strategy, and proof emphasis — no two concepts may open the same way.
+
+Return ONLY this JSON object — no markdown, no code fences, no commentary before or after:
+{"concepts":[{"title":"...","hook":"...","script":"...","alt_hooks":[{"hook":"...","type":"...","why":"..."}],"brief":{"wardrobe":"...","setting":"...","delivery":"...","tone_notes":"..."},"why_it_converts":"..."}],"winner_pick":"Which concept has the highest conversion potential and why, one sentence."}`;
 }
 
 // ── GENERATE ──
 async function generate(){
-  const client=clients.find(x=>x.id===activeClientId);
-  if(!client){showError('No client loaded. Go to Clients and select one first.');return;}
-  const outputType=getActive('output-type-badges'),stage=getActive('stage-badges'),goal=getActive('goal-badges');
-  const angle=document.getElementById('angle-select').value,length=getActive('length-badges'),qty=getActive('qty-badges');
-  const hookQty=getActive('hook-qty-badges')||'8';
+  if (generating) return;
+  const client = clients.find(x => x.id === activeClientId);
+  if (!client) { showError('Save the client profile first, then generate.'); return; }
+  const stage=getActive('stage-badges'), goal=getActive('goal-badges'), lengthId=getActive('length-badges');
+  const angle=document.getElementById('angle-select').value;
+  const qty=parseInt(getActive('qty-badges'))||2;
+  const L=LENGTHS.find(l=>l.id===lengthId)||LENGTHS[4];
+  const maxTokens=Math.min(24000, 600 + qty * L.tokensPerConcept);
+
   document.getElementById('empty-state').style.display='none';
   document.getElementById('output-section').style.display='none';
   document.getElementById('error-box').style.display='none';
   const loadEl=document.getElementById('loading-state');loadEl.style.display='block';
+  document.getElementById('loading-text').textContent='Sending brief to Claude…';
   document.getElementById('gen-btn').disabled=true;
-  let mi=0;const lint=setInterval(()=>{document.getElementById('loading-text').textContent=loadMsgs[mi++%loadMsgs.length];},1800);
+  document.getElementById('gen-sidebar').classList.add('busy');
+  generating=true;
+  let mi=0;const lint=setInterval(()=>{document.getElementById('loading-text').textContent=loadMsgs[mi++%loadMsgs.length];},2200);
+
   try{
-    const data=await callWorker({prompt:buildPrompt(client,outputType,stage,goal,angle,length,qty,hookQty)});
-    // Save generation to Supabase
-    if(data.concepts&&data.concepts.length>0){
-      const now=new Date();
-      const savedAt=now.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+' '+now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
-      try{
-        await sb.insert('generations',{
-          client_id:client.id,saved_at:savedAt,saved_at_iso:now.toISOString(),
-          output_type:outputType,stage:stage.split('—')[0].trim(),goal:goal.split(' ').slice(0,3).join(' '),
-          angle,length:length.split('—')[0].trim(),winner:data.winner_pick||'',
-          concepts:data.concepts,hooks:data.hooks||data.hook_bank||[]
-        });
-        // Refresh generation counts
-        await loadClientGenerations(client.id);
-        renderClients();
-      }catch(e){console.warn('Failed to save generation:',e);}
-    }
+    const raw=await callWorker({ prompt: buildPrompt(client,stage,goal,angle,lengthId,qty), max_tokens: maxTokens });
+    const data=normalizeGeneration(parseWorkerJSON(raw));
+    if(!data.concepts.length) throw new Error('The model returned no concepts. Try again.');
+
     lastOutputData=data; lastOutputClient=client;
-    renderOutput(data,outputType,client,stage,goal,length);
+    lastOutputMeta={stage,goal,length:lengthId};
+    activeHookIdx={};
+
+    // Always persist successful generations
+    try{
+      await sb.insert('generations',{
+        client_id:client.id, saved_at:humanNow(), saved_at_iso:new Date().toISOString(),
+        output_type:'concepts', stage, goal, angle, length:lengthId,
+        winner:data.winner_pick||'',
+        concepts:data.concepts, hooks:[]
+      });
+      await loadClientGenerations(client.id);
+    }catch(e){
+      console.warn('Failed to save generation:',e);
+      toast('Generated, but saving to history failed: '+e.message,'error');
+    }
+
+    renderOutputDisplay();
   }catch(err){showError('Generation failed: '+err.message);}
-  finally{clearInterval(lint);loadEl.style.display='none';document.getElementById('gen-btn').disabled=false;}
+  finally{
+    clearInterval(lint);
+    loadEl.style.display='none';
+    document.getElementById('gen-btn').disabled=false;
+    document.getElementById('gen-sidebar').classList.remove('busy');
+    generating=false;
+  }
 }
 
-// ── RENDER OUTPUT ──
-function renderOutput(data,outputType,client,stage,goal,length){
-  lastOutputData=data; lastOutputClient=client;
-  renderOutputDisplay(data,client,stage,goal,length);
+function showError(msg){const el=document.getElementById('error-box');el.textContent=msg;el.style.display='block';document.getElementById('empty-state').style.display='none';document.getElementById('loading-state').style.display='none';}
+
+// ── OUTPUT RENDERING ──
+// Each concept card: hook chips (primary + 4 alternates), full script, creator
+// brief grid, why-it-converts, per-concept downloads. All events are delegated
+// via data-action — no script text is ever serialized into HTML attributes.
+function conceptHooks(c){
+  return [{hook:c.hook,type:'Primary',why:''}].concat(c.alt_hooks||[]);
 }
 
-function renderOutputDisplay(data,client,stage,goal,length){
-  document.getElementById('output-meta').innerHTML=[client.bizname,stage.split('—')[0].trim(),goal.split(' ').slice(0,3).join(' '),length.split('—')[0].split('-')[0].trim()+'s'].map(t=>`<span class="out-tag">${esc(t)}</span>`).join('');
-  document.getElementById('winner-area').innerHTML=data.winner_pick?`<div class="winner-box"><div style="font-size:18px;flex-shrink:0">★</div><div><div class="winner-label">Highest conversion potential</div><div class="winner-text">${esc(data.winner_pick)}</div></div></div>`:'';
+function renderOutputDisplay(){
+  const data=lastOutputData, client=lastOutputClient, meta=lastOutputMeta||{};
+  if(!data||!client) return;
+  document.getElementById('error-box').style.display='none';
+  document.getElementById('empty-state').style.display='none';
+
+  document.getElementById('output-meta').innerHTML=[client.bizname,stageLabel(meta.stage),goalLabel(meta.goal),lengthLabel(meta.length)]
+    .filter(Boolean).map(t=>`<span class="out-tag">${esc(t)}</span>`).join('');
+
+  document.getElementById('winner-area').innerHTML=data.winner_pick
+    ?`<div class="winner-box"><div style="font-size:18px;flex-shrink:0">★</div><div><div class="winner-label">Highest conversion potential</div><div class="winner-text">${esc(data.winner_pick)}</div></div></div>`:'';
+
+  // Download-all bar
+  const dlArea=document.getElementById('dl-bar-area');
+  const n=data.concepts.length;
+  if(n){
+    dlArea.innerHTML=`<div class="dl-all-bar"><span class="dl-all-label">Download all ${n} concept${n!==1?'s':''}</span><div class="dl-all-btns">
+      <button id="dl-all-btn-all" class="dl-all-btn all" data-action="zip" data-type="all">All files (ZIP)</button>
+      <button id="dl-all-btn-client-docx" class="dl-all-btn" data-action="zip" data-type="client-docx">Client · Word</button>
+      <button id="dl-all-btn-client-pdf" class="dl-all-btn" data-action="zip" data-type="client-pdf">Client · PDF</button>
+      <button id="dl-all-btn-internal-docx" class="dl-all-btn" data-action="zip" data-type="internal-docx">Internal · Word</button>
+      <button id="dl-all-btn-internal-pdf" class="dl-all-btn" data-action="zip" data-type="internal-pdf">Internal · PDF</button>
+    </div></div>`;
+  } else { dlArea.innerHTML=''; }
+
   const el=document.getElementById('concepts-area');el.innerHTML='';
 
-  // Download all bar
-  const existingBar=document.getElementById('dl-all-bar');if(existingBar)existingBar.remove();
-  const barConcepts=data.concepts||[];
-  const barHooks=data.hooks||data.hook_bank||[];
-  if(barConcepts.length||barHooks.length){
-    const label=barConcepts.length&&barHooks.length
-      ? `Download all ${barConcepts.length} scripts + ${barHooks.length} hooks`
-      : barConcepts.length
-        ? `Download all ${barConcepts.length} script${barConcepts.length!==1?'s':''}`
-        : `Download all ${barHooks.length} hook${barHooks.length!==1?'s':''}`;
-    let btns=`<button id="dl-all-btn-all" class="dl-all-btn all" data-label="All files (ZIP)" onclick="downloadAllAsZip('all')">All files (ZIP)</button>`;
-    if(barConcepts.length){
-      btns+=`<button id="dl-all-btn-client-docx" class="dl-all-btn" data-label="Client · Word" onclick="downloadAllAsZip('client-docx')">Client · Word</button>
-        <button id="dl-all-btn-client-pdf" class="dl-all-btn" data-label="Client · PDF" onclick="downloadAllAsZip('client-pdf')">Client · PDF</button>
-        <button id="dl-all-btn-internal-docx" class="dl-all-btn" data-label="Internal · Word" onclick="downloadAllAsZip('internal-docx')">Internal · Word</button>
-        <button id="dl-all-btn-internal-pdf" class="dl-all-btn" data-label="Internal · PDF" onclick="downloadAllAsZip('internal-pdf')">Internal · PDF</button>`;
-    }
-    if(barHooks.length){
-      btns+=`<button class="dl-all-btn" onclick="dlHooksDocx()">Hooks · Word</button>
-        <button class="dl-all-btn" onclick="dlHooksPdf()">Hooks · PDF</button>`;
-    }
-    const bar=document.createElement('div');
-    bar.className='dl-all-bar';bar.id='dl-all-bar';
-    bar.innerHTML=`<span class="dl-all-label">${label}</span><div class="dl-all-btns">${btns}</div>`;
-    document.getElementById('winner-area').before(bar);
-  }
-
-  if(data.concepts){data.concepts.forEach((c,i)=>{
-    const cIdx=i;const card=document.createElement('div');card.className='concept-card';
-    card.innerHTML=`<div class="concept-header" onclick="toggleC(this)"><div><div class="concept-num">SCRIPT ${String(i+1).padStart(2,'0')}</div><div class="concept-title">${esc(c.title)}</div></div><div class="concept-toggle ${i===0?'open':''}">⌄</div></div>
+  data.concepts.forEach((c,i)=>{
+    const hooks=conceptHooks(c);
+    const hIdx=activeHookIdx[i]||0;
+    const active=hooks[hIdx]||hooks[0];
+    const card=document.createElement('div');card.className='concept-card';
+    card.innerHTML=`<div class="concept-header" data-action="toggle-concept"><div><div class="concept-num">CONCEPT ${String(i+1).padStart(2,'0')}</div><div class="concept-title">${esc(c.title||('Concept '+(i+1)))}</div></div><div class="concept-toggle ${i===0?'open':''}">⌄</div></div>
     <div class="concept-body ${i===0?'open':''}">
-      <div class="csec"><div class="csec-label">Hook — first 2 seconds</div><div class="hook-text">${esc(c.hook)}</div></div>
-      <div class="csec"><div class="csec-label">Full script</div><div class="script-text">${fmtScript(c.script)}</div>
-        <div class="copy-row"><button class="copy-btn" onclick="cpTxt(this,${JSON.stringify(c.script)})">Copy script</button></div>
+      <div class="csec">
+        <div class="csec-label">Hook${hooks.length>1?'s — primary + '+(hooks.length-1)+' alternates':''}</div>
+        ${hooks.length>1?`<div class="hook-chips">${hooks.map((h,j)=>`<button class="hook-chip${j===hIdx?' active':''}" data-action="hook-chip" data-cidx="${i}" data-hidx="${j}">${esc(j===0?'Primary':(sTxt(h.type)||'Alt '+j))}</button>`).join('')}</div>`:''}
+        <div class="hook-text" id="hook-text-${i}">${esc(active.hook)}</div>
+        <div id="hook-extra-${i}">${hookExtraHTML(i,hIdx,active)}</div>
+        <div class="copy-row"><button class="copy-btn" data-action="copy-hook" data-cidx="${i}">Copy hook</button></div>
       </div>
-      <div class="csec"><div class="csec-label">Director's note</div><div class="director-box">${esc(c.directors_note)}</div></div>
-      <div class="csec"><div class="csec-label">Why this converts</div><div class="insight-box">${esc(c.why_it_converts)}</div></div>
+      <div class="csec"><div class="csec-label">Full script</div><div class="script-text">${fmtScript(c.script)}</div>
+        <div class="copy-row"><button class="copy-btn" data-action="copy-script" data-cidx="${i}">Copy script</button></div>
+      </div>
+      ${c.brief?`<div class="csec"><div class="csec-label">Creator brief</div><div class="brief-grid">
+        ${briefCell('Wardrobe',c.brief.wardrobe)}
+        ${briefCell('Setting',c.brief.setting)}
+        ${briefCell('Delivery',c.brief.delivery)}
+        ${briefCell('Tone',c.brief.tone_notes)}
+      </div></div>`
+      :(c.legacy_directors_note?`<div class="csec"><div class="csec-label">Director's note</div><div class="director-box">${esc(c.legacy_directors_note)}</div></div>`:'')}
+      ${c.why_it_converts?`<div class="csec"><div class="csec-label">Why this converts</div><div class="insight-box">${esc(c.why_it_converts)}</div></div>`:''}
       <div class="dl-row">
         <div class="dl-group"><div class="dl-label">Client doc</div><div class="dl-btns">
-          <button class="dl-btn client" onclick="dlClientDocx(${cIdx})">Word</button>
-          <button class="dl-btn client" onclick="dlClientPdf(${cIdx})">PDF</button>
+          <button class="dl-btn client" data-action="dl" data-kind="client-docx" data-cidx="${i}">Word</button>
+          <button class="dl-btn client" data-action="dl" data-kind="client-pdf" data-cidx="${i}">PDF</button>
         </div></div>
         <div class="dl-group"><div class="dl-label">Internal / talent</div><div class="dl-btns">
-          <button class="dl-btn internal" onclick="dlInternalDocx(${cIdx})">Word</button>
-          <button class="dl-btn internal" onclick="dlInternalPdf(${cIdx})">PDF</button>
+          <button class="dl-btn internal" data-action="dl" data-kind="internal-docx" data-cidx="${i}">Word</button>
+          <button class="dl-btn internal" data-action="dl" data-kind="internal-pdf" data-cidx="${i}">PDF</button>
         </div></div>
+        ${hooks.length>1?`<div class="dl-group"><div class="dl-label">Hook variants</div><div class="dl-btns">
+          <button class="dl-btn" data-action="dl" data-kind="hooks-docx" data-cidx="${i}">Word</button>
+          <button class="dl-btn" data-action="dl" data-kind="hooks-txt" data-cidx="${i}">Text</button>
+        </div></div>`:''}
       </div>
     </div>`;
     el.appendChild(card);
-  });}
+  });
 
-  if(data.hooks||data.hook_bank){
-    const hooks=data.hooks||data.hook_bank;
+  // Legacy hook bank (pre-rework generations only)
+  if(data.legacy_hook_bank){
+    const hooks=data.legacy_hook_bank;
     const hCard=document.createElement('div');hCard.className='concept-card';
-    hCard.innerHTML=`<div class="concept-header" onclick="toggleC(this)"><div><div class="concept-num">HOOK BANK</div><div class="concept-title">${hooks.length} hooks — all types covered</div></div><div class="concept-toggle open">⌄</div></div>
-    <div class="concept-body open">${hooks.map((h,i)=>`<div class="csec" style="border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:14px"><div class="csec-label">Hook ${i+1} · ${esc(h.type||'')}</div><div class="hook-text" style="font-size:15px;margin-bottom:8px">${esc(h.hook)}</div><div style="font-size:12px;color:var(--muted);font-style:italic">${esc(h.why||'')}</div></div>`).join('')}
-      <div class="copy-row"><button class="copy-btn" onclick="cpHooks(this)">Copy all hooks</button></div>
-      <div class="dl-row">
-        <div class="dl-group"><div class="dl-label">Hook bank</div><div class="dl-btns">
-          <button class="dl-btn client" onclick="dlHooksDocx()">Word</button>
-          <button class="dl-btn client" onclick="dlHooksPdf()">PDF</button>
-          <button class="dl-btn internal" onclick="dlHooksTxt()">Text</button>
-        </div></div>
-      </div>
+    hCard.innerHTML=`<div class="concept-header" data-action="toggle-concept"><div><div class="concept-num">LEGACY HOOK BANK</div><div class="concept-title">${hooks.length} hooks from an earlier generation</div></div><div class="concept-toggle">⌄</div></div>
+    <div class="concept-body">${hooks.map((h,i)=>`<div class="csec" style="border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:14px"><div class="csec-label">Hook ${i+1} · ${esc(sTxt(h.type))}</div><div class="hook-text" style="font-size:15px;margin-bottom:8px">${esc(sTxt(h.hook))}</div><div class="hook-why">${esc(sTxt(h.why))}</div></div>`).join('')}
+      <div class="dl-row"><div class="dl-group"><div class="dl-label">Hook bank</div><div class="dl-btns">
+        <button class="dl-btn client" data-action="dl" data-kind="legacy-hooks-docx">Word</button>
+        <button class="dl-btn client" data-action="dl" data-kind="legacy-hooks-pdf">PDF</button>
+        <button class="dl-btn internal" data-action="dl" data-kind="legacy-hooks-txt">Text</button>
+      </div></div></div>
     </div>`;
     el.appendChild(hCard);
   }
 
-  document.getElementById('output-section').style.display='block';
-  document.getElementById('output-section').scrollIntoView({behavior:'smooth',block:'start'});
+  const out=document.getElementById('output-section');
+  out.style.display='block';
+  out.scrollIntoView({behavior:'smooth',block:'start'});
 }
 
-function toggleC(h){const b=h.nextElementSibling,t=h.querySelector('.concept-toggle'),o=b.classList.toggle('open');t.classList.toggle('open',o);}
+function briefCell(label,text){
+  return `<div class="brief-cell"><div class="brief-cell-label">${esc(label)}</div><div class="brief-cell-text">${esc(sTxt(text,'—'))}</div></div>`;
+}
+
+function hookExtraHTML(cIdx,hIdx,h){
+  if(hIdx===0) return '';
+  return `${sTxt(h.why)?`<div class="hook-why">${esc(h.why)}</div>`:''}<div class="hook-swap-note">Alternate — swap this in for the script's opening line(s) when filming this variant.</div>`;
+}
+
+function selectHookChip(cIdx,hIdx){
+  const c=lastOutputData&&lastOutputData.concepts[cIdx]; if(!c) return;
+  const hooks=conceptHooks(c);
+  const h=hooks[hIdx]; if(!h) return;
+  activeHookIdx[cIdx]=hIdx;
+  document.getElementById('hook-text-'+cIdx).textContent=h.hook;
+  document.getElementById('hook-extra-'+cIdx).innerHTML=hookExtraHTML(cIdx,hIdx,h);
+  document.querySelectorAll(`.hook-chip[data-cidx="${cIdx}"]`).forEach(ch=>ch.classList.toggle('active',parseInt(ch.dataset.hidx)===hIdx));
+}
+
+function toggleC(header){const b=header.nextElementSibling,t=header.querySelector('.concept-toggle'),o=b.classList.toggle('open');t.classList.toggle('open',o);}
 function fmtScript(t){return esc(t).replace(/\[(pause|beat|cut|hold|breath)[^\]]*\]/gi,m=>`<span class="pause-note">${m}</span>`);}
-function cpTxt(btn,text){navigator.clipboard.writeText(text).then(()=>{btn.textContent='Copied ✓';btn.classList.add('copied');setTimeout(()=>{btn.textContent='Copy script';btn.classList.remove('copied');},2000);});}
-function showError(msg){const el=document.getElementById('error-box');el.textContent=msg;el.style.display='block';document.getElementById('empty-state').style.display='none';document.getElementById('loading-state').style.display='none';}
-function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-function getScript(idx){return lastOutputData&&lastOutputData.concepts?lastOutputData.concepts[idx]:null;}
-function getHooks(){return lastOutputData?(lastOutputData.hooks||lastOutputData.hook_bank||[]):[];}
-
-// Model output is not guaranteed to contain every field. jsPDF throws outright on a
-// non-string, which used to abort the whole ZIP — coerce before it reaches a builder.
-function sTxt(v,fallback){
-  if(typeof v==='string'&&v.trim()) return v;
-  if(typeof v==='number') return String(v);
-  return fallback||'';
+function copyWithFeedback(btn,text){
+  const orig=btn.textContent;
+  const done=()=>{
+    btn.textContent='Copied ✓';btn.classList.add('copied');
+    setTimeout(()=>{btn.textContent=orig;btn.classList.remove('copied');},2000);
+  };
+  // execCommand fallback covers contexts where the async clipboard API is
+  // unavailable or permission-gated.
+  const legacyCopy=()=>{
+    try{
+      const ta=document.createElement('textarea');
+      ta.value=text;ta.style.cssText='position:fixed;opacity:0';
+      document.body.appendChild(ta);ta.select();
+      const ok=document.execCommand('copy');
+      ta.remove();
+      if(ok) done(); else toast('Could not copy to clipboard.','error');
+    }catch(e){toast('Could not copy to clipboard.','error');}
+  };
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done).catch(legacyCopy);
+  } else legacyCopy();
 }
+function getScript(idx){return lastOutputData&&lastOutputData.concepts?lastOutputData.concepts[idx]:null;}
 
 function saveBlob(blob,filename){
   const url=URL.createObjectURL(blob);
@@ -1301,35 +1601,59 @@ function buildClientDocxBlob(concept,client){
   });
 }
 
+// Internal / talent package: creator brief + alternate hooks + script.
+// Falls back to the old profile-derived briefing block for legacy generations.
 function buildInternalDocxBlob(concept,client){
   return new Promise((resolve,reject)=>{
     if(!window.docx){reject(new Error('Word library not loaded'));return;}
     const {Document,Paragraph,TextRun,AlignmentType,BorderStyle,Packer}=window.docx;
     const date=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
     const scriptLines=(concept.script||'').split('\n');
-    const doc=new Document({sections:[{properties:{},children:[
-      new Paragraph({children:[new TextRun({text:'FORGE MARKETING — INTERNAL',bold:true,size:20,color:'3d9960',font:'Arial'})],spacing:{after:40}}),
+    const G='3d9960';
+    const secTitle=t=>new Paragraph({children:[new TextRun({text:t,bold:true,size:16,color:G,font:'Arial'})],spacing:{before:120,after:100}});
+    const children=[
+      new Paragraph({children:[new TextRun({text:'FORGE MARKETING — INTERNAL',bold:true,size:20,color:G,font:'Arial'})],spacing:{after:40}}),
       new Paragraph({children:[new TextRun({text:'Talent Script Package',bold:true,size:28,color:'1a1a18',font:'Arial'})],spacing:{after:60}}),
-      new Paragraph({children:[new TextRun({text:'Client: '+(client.bizname||'Client')+'  ·  '+sTxt(concept.title,'Untitled script')+'  ·  '+date,size:18,color:'666660',font:'Arial'})],border:{bottom:{color:'3d9960',style:BorderStyle.SINGLE,size:4}},spacing:{after:360}}),
-      new Paragraph({children:[new TextRun({text:'TALENT BRIEFING',bold:true,size:16,color:'3d9960',font:'Arial'})],spacing:{after:100}}),
-      new Paragraph({children:[new TextRun({text:'Spokesperson: '+(client.talent||'See project brief'),size:20,font:'Arial'})],spacing:{after:80}}),
-      new Paragraph({children:[new TextRun({text:'Business: '+(client.bizname||''),size:20,font:'Arial'})],spacing:{after:80}}),
-      new Paragraph({children:[new TextRun({text:'Platforms: '+((client.platforms||[]).join(', ')||'See project brief'),size:20,font:'Arial'})],spacing:{after:80}}),
-      new Paragraph({children:[new TextRun({text:'Offer: '+(client.offer?client.offer.substring(0,120)+'...':'See project brief'),size:20,font:'Arial',italics:true,color:'666660'})],spacing:{after:320}}),
-      new Paragraph({children:[new TextRun({text:"DIRECTOR'S NOTE",bold:true,size:16,color:'3d9960',font:'Arial'})],spacing:{after:100}}),
-      new Paragraph({children:[new TextRun({text:concept.directors_note||'',size:20,font:'Arial',italics:true,color:'333330'})],indent:{left:360},border:{left:{color:'3d9960',style:BorderStyle.SINGLE,size:8}},spacing:{after:320}}),
-      new Paragraph({children:[new TextRun({text:'HOOK — NAIL THIS IN 2 SECONDS',bold:true,size:16,color:'3d9960',font:'Arial'})],spacing:{after:100}}),
-      new Paragraph({children:[new TextRun({text:sTxt(concept.hook,'(no hook provided)'),bold:true,size:30,font:'Arial',color:'1a1a18'})],border:{left:{color:'3d9960',style:BorderStyle.SINGLE,size:14}},indent:{left:360},spacing:{after:400}}),
-      new Paragraph({children:[new TextRun({text:'FULL SCRIPT',bold:true,size:16,color:'3d9960',font:'Arial'})],spacing:{after:100}}),
-      new Paragraph({children:[new TextRun({text:'Read exactly as written. [pause] = 1-second beat. Notes in brackets are not read aloud.',size:16,color:'888880',font:'Arial',italics:true})],spacing:{after:200}}),
-      ...scriptLines.map(line=>{
-        const isNote=/^\[/.test((line||'').trim());
-        return new Paragraph({children:[new TextRun({text:line||'',size:isNote?18:24,font:'Arial',italics:isNote,color:isNote?'888880':'0a0a09'})],spacing:{after:100},indent:isNote?{left:360}:{}});
-      }),
-      new Paragraph({spacing:{before:480},border:{top:{color:'3d9960',style:BorderStyle.SINGLE,size:4}}}),
-      new Paragraph({children:[new TextRun({text:'INTERNAL USE ONLY — Forge Marketing',size:16,color:'888880',font:'Arial',bold:true})],alignment:AlignmentType.CENTER,spacing:{before:120}}),
-    ]}]});
-    Packer.toBlob(doc).then(resolve).catch(reject);
+      new Paragraph({children:[new TextRun({text:'Client: '+(client.bizname||'Client')+'  ·  '+sTxt(concept.title,'Untitled script')+'  ·  '+date,size:18,color:'666660',font:'Arial'})],border:{bottom:{color:G,style:BorderStyle.SINGLE,size:4}},spacing:{after:320}}),
+    ];
+    if(concept.brief){
+      children.push(secTitle('CREATOR BRIEF'));
+      [['Wardrobe',concept.brief.wardrobe],['Setting',concept.brief.setting],['Delivery',concept.brief.delivery],['Tone',concept.brief.tone_notes]].forEach(([label,val])=>{
+        children.push(new Paragraph({children:[
+          new TextRun({text:label+':  ',bold:true,size:20,font:'Arial',color:'1a1a18'}),
+          new TextRun({text:sTxt(val,'—'),size:20,font:'Arial',color:'333330'})
+        ],spacing:{after:100},indent:{left:200}}));
+      });
+    } else {
+      children.push(secTitle('TALENT BRIEFING'));
+      children.push(new Paragraph({children:[new TextRun({text:'Spokesperson: '+(client.talent||'See project brief'),size:20,font:'Arial'})],spacing:{after:80}}));
+      children.push(new Paragraph({children:[new TextRun({text:'Business: '+(client.bizname||''),size:20,font:'Arial'})],spacing:{after:80}}));
+      children.push(new Paragraph({children:[new TextRun({text:'Platforms: '+((client.platforms||[]).join(', ')||'See project brief'),size:20,font:'Arial'})],spacing:{after:80}}));
+      if(concept.legacy_directors_note){
+        children.push(secTitle("DIRECTOR'S NOTE"));
+        children.push(new Paragraph({children:[new TextRun({text:concept.legacy_directors_note,size:20,font:'Arial',italics:true,color:'333330'})],indent:{left:360},border:{left:{color:G,style:BorderStyle.SINGLE,size:8}},spacing:{after:240}}));
+      }
+    }
+    children.push(secTitle('HOOK — NAIL THIS IN 2 SECONDS'));
+    children.push(new Paragraph({children:[new TextRun({text:sTxt(concept.hook,'(no hook provided)'),bold:true,size:30,font:'Arial',color:'1a1a18'})],border:{left:{color:G,style:BorderStyle.SINGLE,size:14}},indent:{left:360},spacing:{after:280}}));
+    const alts=(concept.alt_hooks||[]);
+    if(alts.length){
+      children.push(secTitle('ALTERNATE HOOKS — SHOOT THESE AS VARIANTS'));
+      children.push(new Paragraph({children:[new TextRun({text:'Each replaces the opening line(s) of the script. Film the full script once, then re-record just the opening with each alternate.',size:16,color:'888880',font:'Arial',italics:true})],spacing:{after:140}}));
+      alts.forEach((h,i)=>{
+        children.push(new Paragraph({children:[new TextRun({text:'ALT '+(i+1)+(sTxt(h.type)?'  ·  '+sTxt(h.type).toUpperCase():''),bold:true,size:14,color:G,font:'Arial'})],spacing:{after:60}}));
+        children.push(new Paragraph({children:[new TextRun({text:sTxt(h.hook,'(empty hook)'),bold:true,size:22,font:'Arial',color:'1a1a18'})],border:{left:{color:G,style:BorderStyle.SINGLE,size:8}},indent:{left:360},spacing:{after:140}}));
+      });
+    }
+    children.push(secTitle('FULL SCRIPT'));
+    children.push(new Paragraph({children:[new TextRun({text:'Read exactly as written. [pause] = 1-second beat. Notes in brackets are not read aloud.',size:16,color:'888880',font:'Arial',italics:true})],spacing:{after:200}}));
+    scriptLines.forEach(line=>{
+      const isNote=/^\[/.test((line||'').trim());
+      children.push(new Paragraph({children:[new TextRun({text:line||'',size:isNote?18:24,font:'Arial',italics:isNote,color:isNote?'888880':'0a0a09'})],spacing:{after:100},indent:isNote?{left:360}:{}}));
+    });
+    children.push(new Paragraph({spacing:{before:480},border:{top:{color:G,style:BorderStyle.SINGLE,size:4}}}));
+    children.push(new Paragraph({children:[new TextRun({text:'INTERNAL USE ONLY — Forge Marketing',size:16,color:'888880',font:'Arial',bold:true})],alignment:AlignmentType.CENTER,spacing:{before:120}}));
+    Packer.toBlob(new Document({sections:[{properties:{},children}]})).then(resolve).catch(reject);
   });
 }
 
@@ -1377,6 +1701,7 @@ function buildInternalPdfBlob(concept,client){
   const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:'pt',format:'letter'});
   const W=doc.internal.pageSize.getWidth(),PH=doc.internal.pageSize.getHeight(),margin=56;let y=50;
   const chk=n=>{if(y+n>PH-60){doc.addPage();y=50;}};
+  const secTitle=t=>{chk(30);doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(61,153,96);doc.text(t,margin,y);y+=14;};
   doc.setFillColor(61,153,96);doc.rect(margin,y,W-margin*2,3,'F');y+=16;
   doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(61,153,96);
   doc.text('FORGE MARKETING — INTERNAL / TALENT PACKAGE',margin,y);y+=20;
@@ -1384,32 +1709,59 @@ function buildInternalPdfBlob(concept,client){
   doc.text('Talent Script Package',margin,y);y+=18;
   doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(100,100,96);
   doc.text((client.bizname||'Client')+' · '+sTxt(concept.title,'Untitled script')+' · '+new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}),margin,y);
-  y+=6;doc.setFillColor(61,153,96);doc.rect(margin,y,W-margin*2,1,'F');y+=28;
-  doc.setFillColor(240,250,244);doc.roundedRect(margin,y,W-margin*2,70,4,4,'F');
-  doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(61,153,96);
-  doc.text('TALENT BRIEFING',margin+12,y+14);
-  doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(30,30,28);
-  doc.text('Spokesperson: '+(client.talent||'See project brief'),margin+12,y+28);
-  doc.text('Business: '+(client.bizname||'')+'  ·  Platforms: '+((client.platforms||[]).join(', ')||'See brief'),margin+12,y+42);
-  doc.setFont('helvetica','italic');doc.setTextColor(80,80,76);
-  doc.text('Offer: '+((client.offer||'See project brief').substring(0,90)),margin+12,y+56);
-  y+=84;chk(80);
-  doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(61,153,96);
-  doc.text("DIRECTOR'S NOTE",margin,y);y+=14;
-  doc.setFillColor(61,153,96);doc.rect(margin,y,3,32,'F');
-  doc.setFont('helvetica','italic');doc.setFontSize(11);doc.setTextColor(40,40,38);
-  const dLines=doc.splitTextToSize(sTxt(concept.directors_note,'—'),W-margin*2-16);
-  doc.text(dLines,margin+10,y+12);y+=Math.max(40,dLines.length*14)+20;chk(80);
-  doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(61,153,96);
-  doc.text('HOOK — NAIL THIS IN 2 SECONDS',margin,y);y+=14;
+  y+=6;doc.setFillColor(61,153,96);doc.rect(margin,y,W-margin*2,1,'F');y+=26;
+  if(concept.brief){
+    secTitle('CREATOR BRIEF');
+    [['Wardrobe',concept.brief.wardrobe],['Setting',concept.brief.setting],['Delivery',concept.brief.delivery],['Tone',concept.brief.tone_notes]].forEach(([label,val])=>{
+      chk(34);
+      doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(30,30,28);
+      doc.text(label,margin,y);
+      doc.setFont('helvetica','normal');doc.setTextColor(60,60,56);
+      const wrapped=doc.splitTextToSize(sTxt(val,'—'),W-margin*2-90);
+      doc.text(wrapped,margin+86,y);
+      y+=Math.max(14,wrapped.length*13)+8;
+    });
+    y+=8;
+  } else {
+    secTitle('TALENT BRIEFING');
+    doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(30,30,28);
+    doc.text('Spokesperson: '+(client.talent||'See project brief'),margin,y);y+=14;
+    doc.text('Business: '+(client.bizname||'')+'  ·  Platforms: '+((client.platforms||[]).join(', ')||'See brief'),margin,y);y+=20;
+    if(concept.legacy_directors_note){
+      secTitle("DIRECTOR'S NOTE");
+      doc.setFillColor(61,153,96);doc.rect(margin,y,3,32,'F');
+      doc.setFont('helvetica','italic');doc.setFontSize(11);doc.setTextColor(40,40,38);
+      const dLines=doc.splitTextToSize(concept.legacy_directors_note,W-margin*2-16);
+      doc.text(dLines,margin+10,y+12);y+=Math.max(40,dLines.length*14)+16;
+    }
+  }
+  chk(70);
+  secTitle('HOOK — NAIL THIS IN 2 SECONDS');
   doc.setFillColor(61,153,96);doc.rect(margin,y,4,36,'F');
   doc.setFont('helvetica','bold');doc.setFontSize(15);doc.setTextColor(10,10,8);
   const hLines=doc.splitTextToSize(sTxt(concept.hook,'(no hook provided)'),W-margin*2-14);
-  doc.text(hLines,margin+12,y+14);y+=Math.max(42,hLines.length*18)+24;chk(40);
-  doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(61,153,96);
-  doc.text('FULL SCRIPT',margin,y);y+=10;
+  doc.text(hLines,margin+12,y+14);y+=Math.max(42,hLines.length*18)+20;
+  const alts=(concept.alt_hooks||[]);
+  if(alts.length){
+    chk(50);
+    secTitle('ALTERNATE HOOKS — SHOOT THESE AS VARIANTS');
+    doc.setFont('helvetica','italic');doc.setFontSize(9);doc.setTextColor(120,120,116);
+    doc.text('Each replaces the opening line(s). Film the full script once, then re-record just the opening with each alternate.',margin,y);y+=16;
+    alts.forEach((h,i)=>{
+      chk(50);
+      doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(61,153,96);
+      doc.text('ALT '+(i+1)+(sTxt(h.type)?'  ·  '+sTxt(h.type).toUpperCase():''),margin,y);y+=12;
+      const aLines=doc.splitTextToSize(sTxt(h.hook,'(empty hook)'),W-margin*2-14);
+      doc.setFillColor(61,153,96);doc.rect(margin,y-8,3,Math.max(16,aLines.length*14),'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(20,20,18);
+      doc.text(aLines,margin+12,y+2);y+=Math.max(20,aLines.length*14)+10;
+    });
+    y+=6;
+  }
+  chk(60);
+  secTitle('FULL SCRIPT');
   doc.setFont('helvetica','italic');doc.setFontSize(9);doc.setTextColor(120,120,116);
-  doc.text('Read exactly as written. [pause] = 1-second beat. Notes in brackets are not read aloud.',margin,y+=12);y+=18;
+  doc.text('Read exactly as written. [pause] = 1-second beat. Notes in brackets are not read aloud.',margin,y);y+=18;
   (concept.script||'').split('\n').forEach(line=>{
     chk(20);const isNote=/^\[/.test(line.trim());
     if(!line.trim()){y+=8;return;}
@@ -1424,15 +1776,15 @@ function buildInternalPdfBlob(concept,client){
   return doc.output('blob');
 }
 
-// ── HOOK BANK BLOB BUILDERS ──
-function buildHooksDocxBlob(hooks,client){
+// ── HOOK LIST BLOB BUILDERS (per-concept variants + legacy bank) ──
+function buildHooksDocxBlob(hooks,client,subtitle){
   return new Promise((resolve,reject)=>{
     if(!window.docx){reject(new Error('Word library not loaded'));return;}
     const {Document,Paragraph,TextRun,AlignmentType,BorderStyle,Packer}=window.docx;
     const date=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
     const children=[
       new Paragraph({children:[new TextRun({text:'FORGE MARKETING',bold:true,size:28,color:'C9993A',font:'Arial'})]}),
-      new Paragraph({children:[new TextRun({text:'Hook Bank',size:22,color:'888880',font:'Arial'})],spacing:{after:120}}),
+      new Paragraph({children:[new TextRun({text:subtitle||'Hook Bank',size:22,color:'888880',font:'Arial'})],spacing:{after:120}}),
       new Paragraph({border:{bottom:{color:'C9993A',style:BorderStyle.SINGLE,size:6}},spacing:{after:300}}),
       new Paragraph({children:[new TextRun({text:client.bizname||'Client',bold:true,size:32,font:'Arial'})],spacing:{before:200,after:80}}),
       new Paragraph({children:[new TextRun({text:hooks.length+' hooks  ·  '+date,size:18,color:'888880',font:'Arial'})],spacing:{after:400}}),
@@ -1448,7 +1800,7 @@ function buildHooksDocxBlob(hooks,client){
   });
 }
 
-function buildHooksPdfBlob(hooks,client){
+function buildHooksPdfBlob(hooks,client,subtitle){
   const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:'pt',format:'letter'});
   const W=doc.internal.pageSize.getWidth(),PH=doc.internal.pageSize.getHeight(),margin=56;let y=56;
   const chk=n=>{if(y+n>PH-70){doc.addPage();y=56;}};
@@ -1456,7 +1808,7 @@ function buildHooksPdfBlob(hooks,client){
   doc.setFont('helvetica','bold');doc.setFontSize(18);doc.setTextColor(201,153,58);
   doc.text('FORGE MARKETING',margin,y);y+=18;
   doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(136,136,128);
-  doc.text('Hook Bank',margin,y);y+=32;
+  doc.text(subtitle||'Hook Bank',margin,y);y+=32;
   doc.setFillColor(201,153,58);doc.rect(margin,y,W-margin*2,1,'F');y+=24;
   doc.setFont('helvetica','bold');doc.setFontSize(20);doc.setTextColor(20,20,18);
   doc.text(sTxt(client.bizname,'Client'),margin,y);y+=20;
@@ -1484,8 +1836,8 @@ function buildHooksPdfBlob(hooks,client){
   return doc.output('blob');
 }
 
-function buildHooksTextBlob(hooks,client){
-  const lines=[(client.bizname||'Client')+' — Hook Bank',new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}),''];
+function buildHooksTextBlob(hooks,client,subtitle){
+  const lines=[(client.bizname||'Client')+' — '+(subtitle||'Hook Bank'),new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}),''];
   hooks.forEach((h,i)=>{
     lines.push('HOOK '+String(i+1).padStart(2,'0')+(sTxt(h.type)?'  ·  '+sTxt(h.type):''));
     lines.push(sTxt(h.hook,'(empty hook)'));
@@ -1495,93 +1847,105 @@ function buildHooksTextBlob(hooks,client){
   return new Blob([lines.join('\n')],{type:'text/plain'});
 }
 
-// ── INDIVIDUAL DOWNLOADS ──
-function scriptName(c,idx,suffix){return slugify(lastOutputClient.bizname)+'-'+(slugify(sTxt(c.title))||('script-'+(idx+1)))+'-'+suffix;}
-function dlClientDocx(idx){const c=getScript(idx);if(!c)return;buildClientDocxBlob(c,lastOutputClient).then(b=>saveBlob(b,scriptName(c,idx,'client.docx'))).catch(err=>alert('Word download failed: '+err.message));}
-function dlClientPdf(idx){const c=getScript(idx);if(!c)return;try{saveBlob(buildClientPdfBlob(c,lastOutputClient),scriptName(c,idx,'client.pdf'));}catch(err){alert('PDF download failed: '+err.message);}}
-function dlInternalDocx(idx){const c=getScript(idx);if(!c)return;buildInternalDocxBlob(c,lastOutputClient).then(b=>saveBlob(b,scriptName(c,idx,'internal.docx'))).catch(err=>alert('Word download failed: '+err.message));}
-function dlInternalPdf(idx){const c=getScript(idx);if(!c)return;try{saveBlob(buildInternalPdfBlob(c,lastOutputClient),scriptName(c,idx,'internal.pdf'));}catch(err){alert('PDF download failed: '+err.message);}}
-
-// ── HOOK BANK DOWNLOADS ──
-function hooksName(ext){return slugify(lastOutputClient&&lastOutputClient.bizname)+'-hook-bank.'+ext;}
-function dlHooksDocx(){const h=getHooks();if(!h.length){alert('No hooks generated yet.');return;}buildHooksDocxBlob(h,lastOutputClient).then(b=>saveBlob(b,hooksName('docx'))).catch(err=>alert('Word download failed: '+err.message));}
-function dlHooksPdf(){const h=getHooks();if(!h.length){alert('No hooks generated yet.');return;}try{saveBlob(buildHooksPdfBlob(h,lastOutputClient),hooksName('pdf'));}catch(err){alert('PDF download failed: '+err.message);}}
-function dlHooksTxt(){const h=getHooks();if(!h.length){alert('No hooks generated yet.');return;}saveBlob(buildHooksTextBlob(h,lastOutputClient),hooksName('txt'));}
-function cpHooks(btn){const h=getHooks();if(!h.length)return;const text=h.map((x,i)=>(i+1)+'. '+sTxt(x.hook)).join('\n');navigator.clipboard.writeText(text).then(()=>{btn.textContent='Copied ✓';btn.classList.add('copied');setTimeout(()=>{btn.textContent='Copy all hooks';btn.classList.remove('copied');},2000);});}
+// ── DOWNLOADS ──
+function conceptBase(c,idx){
+  const client=lastOutputClient||{};
+  return 'concept-'+String(idx+1).padStart(2,'0')+'-'+slugify(client.bizname)+'-'+(slugify(sTxt(c.title))||'script');
+}
+function dlConcept(kind,idx){
+  const c=getScript(idx);if(!c)return;
+  const client=lastOutputClient||{};
+  const base=conceptBase(c,idx);
+  const fail=err=>toast('Download failed: '+err.message,'error');
+  try{
+    if(kind==='client-docx') buildClientDocxBlob(c,client).then(b=>saveBlob(b,base+'-client.docx')).catch(fail);
+    else if(kind==='client-pdf') saveBlob(buildClientPdfBlob(c,client),base+'-client.pdf');
+    else if(kind==='internal-docx') buildInternalDocxBlob(c,client).then(b=>saveBlob(b,base+'-internal.docx')).catch(fail);
+    else if(kind==='internal-pdf') saveBlob(buildInternalPdfBlob(c,client),base+'-internal.pdf');
+    else if(kind==='hooks-docx') buildHooksDocxBlob(conceptHooks(c),client,'Hook Variants — '+sTxt(c.title,'Concept '+(idx+1))).then(b=>saveBlob(b,base+'-hooks.docx')).catch(fail);
+    else if(kind==='hooks-txt') saveBlob(buildHooksTextBlob(conceptHooks(c),client,'Hook Variants — '+sTxt(c.title,'Concept '+(idx+1))),base+'-hooks.txt');
+  }catch(err){fail(err);}
+}
+function dlLegacyHooks(kind){
+  const hooks=(lastOutputData&&lastOutputData.legacy_hook_bank)||[];
+  if(!hooks.length){toast('No hook bank in this generation.','error');return;}
+  const client=lastOutputClient||{};
+  const base=slugify(client.bizname)+'-hook-bank';
+  const fail=err=>toast('Download failed: '+err.message,'error');
+  try{
+    if(kind==='legacy-hooks-docx') buildHooksDocxBlob(hooks,client,'Hook Bank').then(b=>saveBlob(b,base+'.docx')).catch(fail);
+    else if(kind==='legacy-hooks-pdf') saveBlob(buildHooksPdfBlob(hooks,client,'Hook Bank'),base+'.pdf');
+    else if(kind==='legacy-hooks-txt') saveBlob(buildHooksTextBlob(hooks,client,'Hook Bank'),base+'.txt');
+  }catch(err){fail(err);}
+}
 
 // ── DOWNLOAD ALL ZIP ──
 async function downloadAllAsZip(type){
-  if(!lastOutputData||!lastOutputClient){alert('Nothing generated yet.');return;}
-  if(!window.JSZip){alert('Zip library not loaded. Please refresh and try again.');return;}
-
+  if(!lastOutputData||!lastOutputClient){toast('Nothing generated yet.','error');return;}
+  if(!window.JSZip){toast('Zip library not loaded. Refresh and try again.','error');return;}
   const client=lastOutputClient;
   const concepts=lastOutputData.concepts||[];
-  const hooks=getHooks();
-  if(!concepts.length&&!hooks.length){alert('Nothing generated yet.');return;}
+  if(!concepts.length){toast('Nothing generated yet.','error');return;}
 
   const btn=document.getElementById('dl-all-btn-'+type);
   const origLabel=btn?btn.textContent:'';
-  if(btn){btn.textContent='Zipping\u2026';btn.disabled=true;}
+  if(btn){btn.textContent='Zipping…';btn.disabled=true;}
 
-  const zip=new window.JSZip(),clientSlug=slugify(client.bizname);
+  const zip=new window.JSZip();
   const failures=[];
 
-  // Build each script independently. One malformed script used to abort the whole
-  // archive \u2014 now it is skipped and named in the summary instead.
+  // Build each concept independently — one malformed concept is skipped and
+  // named in the summary instead of aborting the whole archive. The index
+  // prefix keeps same-titled concepts from overwriting each other.
   const tasks=concepts.map(async(c,i)=>{
-    const titleSlug=slugify(sTxt(c.title))||('script-'+(i+1));
-    const label='Script '+(i+1)+(sTxt(c.title)?' ('+sTxt(c.title)+')':'');
-    const base=clientSlug+'-'+titleSlug;
+    const base=conceptBase(c,i);
+    const label='Concept '+(i+1)+(sTxt(c.title)?' ('+sTxt(c.title)+')':'');
     try{
       if(type==='client-docx'){zip.file(base+'-client.docx',await buildClientDocxBlob(c,client));}
       else if(type==='client-pdf'){zip.file(base+'-client.pdf',buildClientPdfBlob(c,client));}
       else if(type==='internal-docx'){zip.file(base+'-internal.docx',await buildInternalDocxBlob(c,client));}
       else if(type==='internal-pdf'){zip.file(base+'-internal.pdf',buildInternalPdfBlob(c,client));}
       else if(type==='all'){
-        const folder=zip.folder('script-'+String(i+1).padStart(2,'0')+'-'+titleSlug);
+        const folder=zip.folder(base);
         const[cBlob,iBlob]=await Promise.all([buildClientDocxBlob(c,client),buildInternalDocxBlob(c,client)]);
         folder.file(base+'-client.docx',cBlob);
         folder.file(base+'-client.pdf',buildClientPdfBlob(c,client));
         folder.file(base+'-internal.docx',iBlob);
         folder.file(base+'-internal.pdf',buildInternalPdfBlob(c,client));
+        const hooks=conceptHooks(c);
+        if(hooks.length>1) folder.file(base+'-hooks.txt',buildHooksTextBlob(hooks,client,'Hook Variants — '+sTxt(c.title,'Concept '+(i+1))));
       }
-    }catch(err){ failures.push(label+' \u2014 '+err.message); }
+    }catch(err){ failures.push(label+' — '+err.message); }
   });
-
   await Promise.all(tasks);
 
-  // Hooks ride along in the full archive, and are the whole archive when there are no scripts.
-  if(hooks.length&&(type==='all'||!concepts.length)){
+  if(type==='all'&&lastOutputData.legacy_hook_bank){
     try{
-      const folder=(type==='all'&&concepts.length)?zip.folder('hook-bank'):zip;
-      folder.file(clientSlug+'-hook-bank.docx',await buildHooksDocxBlob(hooks,client));
-      folder.file(clientSlug+'-hook-bank.pdf',buildHooksPdfBlob(hooks,client));
-      folder.file(clientSlug+'-hook-bank.txt',buildHooksTextBlob(hooks,client));
-    }catch(err){ failures.push('Hook bank \u2014 '+err.message); }
+      const folder=zip.folder('hook-bank');
+      folder.file(slugify(client.bizname)+'-hook-bank.txt',buildHooksTextBlob(lastOutputData.legacy_hook_bank,client,'Hook Bank'));
+    }catch(err){ failures.push('Hook bank — '+err.message); }
   }
 
   const fileCount=Object.keys(zip.files).filter(n=>!zip.files[n].dir).length;
   if(!fileCount){
     if(btn){btn.textContent=origLabel;btn.disabled=false;}
-    alert('Nothing could be exported.\n\n'+failures.join('\n'));
+    toast('Nothing could be exported. '+failures.join(' · '),'error');
     return;
   }
 
   try{
     const zipBlob=await zip.generateAsync({type:'blob'});
-    saveBlob(zipBlob,clientSlug+'-'+(concepts.length?'scripts':'hooks')+'-'+type+'.zip');
-    if(failures.length) alert('Downloaded '+fileCount+' files, but these were skipped:\n\n'+failures.join('\n'));
+    saveBlob(zipBlob,slugify(client.bizname)+'-concepts-'+type+'.zip');
+    if(failures.length) toast('Downloaded '+fileCount+' files, but skipped: '+failures.join(' · '),'error');
   }catch(err){
-    alert('Zip failed: '+err.message);
+    toast('Zip failed: '+err.message,'error');
   }finally{
     if(btn){btn.textContent=origLabel;btn.disabled=false;}
   }
 }
 
-
 // ── FILE UPLOAD & AI EXTRACTION ──
 let extractedData = {};
-let clientFiles = {};
 
 async function loadClientFiles(clientId) {
   try {
@@ -1592,11 +1956,11 @@ async function loadClientFiles(clientId) {
 }
 
 function renderFilesList(clientId) {
-  const files = clientFiles[clientId] || [];
+  const files = (clientId && clientFiles[clientId]) || [];
   const listEl = document.getElementById('files-list');
   const itemsEl = document.getElementById('files-list-items');
   if(!listEl || !itemsEl) return;
-  if(files.length === 0) { listEl.style.display = 'none'; return; }
+  if(files.length === 0) { listEl.style.display = 'none'; itemsEl.innerHTML=''; return; }
   listEl.style.display = 'block';
   itemsEl.innerHTML = files.map(f => `
     <div class="file-item">
@@ -1606,7 +1970,7 @@ function renderFilesList(clientId) {
       </div>
       <div style="display:flex;align-items:center;gap:8px">
         <span class="file-size">${formatBytes(f.file_size||0)}</span>
-        <button class="file-del" onclick="deleteFile(${f.id},'${clientId}')">✕</button>
+        <button class="file-del" data-action="file-del" data-fid="${esc(String(f.id))}">✕</button>
       </div>
     </div>`).join('');
 }
@@ -1626,12 +1990,12 @@ function formatBytes(bytes) {
   return (bytes/1048576).toFixed(1)+'MB';
 }
 
-async function deleteFile(fileId, clientId) {
+async function deleteFileById(fileId) {
   if(!confirm('Delete this file?')) return;
   try {
     await sb.delete('client_files','id',fileId);
-    await loadClientFiles(clientId);
-  } catch(e) { alert('Delete failed: '+e.message); }
+    if(activeClientId) await loadClientFiles(activeClientId);
+  } catch(e) { toast('Delete failed: '+e.message, 'error'); }
 }
 
 function handleDragOver(e) { e.preventDefault(); document.getElementById('upload-zone').classList.add('dragover'); }
@@ -1641,7 +2005,7 @@ function handleFileSelect(e) { processFiles(Array.from(e.target.files)); }
 
 async function processFiles(files) {
   if(!files.length) return;
-  if(files.length > 10) { alert('Max 10 files at once.'); return; }
+  if(files.length > 10) { toast('Max 10 files at once.', 'error'); return; }
 
   const progressEl = document.getElementById('upload-progress');
   const progressText = document.getElementById('upload-progress-text');
@@ -1676,12 +2040,12 @@ async function processFiles(files) {
     progressBar.style.width = '75%';
     progressText.textContent = 'Saving files...';
 
-    // Save file metadata to Supabase
-    if(editingClientId) {
+    // Save file metadata to Supabase (only when the client exists in the DB)
+    if(activeClientId && clients.find(x => x.id === activeClientId)) {
       for(const file of files) {
         try {
           await sb.insert('client_files', {
-            client_id: editingClientId,
+            client_id: activeClientId,
             file_name: file.name,
             file_type: file.type,
             file_size: file.size,
@@ -1689,7 +2053,7 @@ async function processFiles(files) {
           });
         } catch(e) { console.warn('Could not save file metadata:', e); }
       }
-      await loadClientFiles(editingClientId);
+      await loadClientFiles(activeClientId);
     }
 
     progressBar.style.width = '100%';
@@ -1698,9 +2062,7 @@ async function processFiles(files) {
       progressText.textContent = 'Files saved — no readable text found';
       setTimeout(() => { progressEl.style.display = 'none'; }, 1000);
       document.getElementById('file-input').value = '';
-      alert('Files were saved, but no text could be extracted:\n\n'
-        + skipped.map(f => `• ${f.name} — ${f.reason}`).join('\n')
-        + '\n\nNothing was sent to Claude. Fill the profile fields manually, or upload a text-based PDF.');
+      toast('No text could be extracted: ' + skipped.map(f => `${f.name} (${f.reason})`).join('; ') + '. Fill the fields manually or upload a text-based PDF.', 'error');
       return;
     }
 
@@ -1708,15 +2070,14 @@ async function processFiles(files) {
       ? `Done — ${skipped.length} file${skipped.length!==1?'s':''} skipped, review fields below`
       : 'Done — review extracted fields below';
 
-    // Parse extracted data
+    // Parse extracted data through the shared normalizer
     let extracted = {};
     try {
-      const text = data.content ? data.content[0].text : (typeof data === 'string' ? data : JSON.stringify(data));
-      const clean = text.replace(/```json|```/g,'').trim();
-      // Find JSON in response
-      const jsonMatch = clean.match(/\{[\s\S]*\}/);
-      if(jsonMatch) extracted = JSON.parse(jsonMatch[0]);
-    } catch(e) { console.warn('Parse error:', e); }
+      extracted = parseWorkerJSON(data) || {};
+    } catch(e) {
+      console.warn('Extraction parse error:', e);
+      toast('Claude responded but the extraction could not be parsed: ' + e.message, 'error');
+    }
 
     extractedData = extracted;
     showExtractionReview(extracted);
@@ -1725,7 +2086,7 @@ async function processFiles(files) {
 
   } catch(err) {
     progressEl.style.display = 'none';
-    alert('Processing failed: '+err.message);
+    toast('Processing failed: '+err.message, 'error');
   }
 
   // Clear file input
@@ -1863,7 +2224,7 @@ function buildExtractionPrompt(fileContents) {
 FILES TO ANALYZE:
 ${fileDescriptions}
 
-Extract whatever you can find and return ONLY a JSON object with these exact keys (omit any key where nothing relevant was found):
+Extract whatever you can find and return ONLY a JSON object with these exact keys (omit any key where nothing relevant was found). Every value must be a plain string:
 
 {
   "bizname": "business name if found",
@@ -1911,7 +2272,7 @@ function showExtractionReview(extracted) {
     inspo:'Creative Inspiration', limits:'Hard Limits', talent:'Spokesperson / Talent', misc:'Other Notes'
   };
 
-  const filled = Object.keys(extracted).filter(k => extracted[k] && extracted[k].toString().trim());
+  const filled = Object.keys(extracted).filter(k => coerceText(extracted[k]).trim());
 
   if(filled.length === 0) {
     reviewEl.style.display = 'block';
@@ -1921,15 +2282,15 @@ function showExtractionReview(extracted) {
 
   fieldsEl.innerHTML = filled.map(k => `
     <div class="extract-field">
-      <label>${fieldLabels[k]||k}</label>
-      <textarea id="extract-${k}" rows="3">${esc(extracted[k])}</textarea>
+      <label>${fieldLabels[k]||esc(k)}</label>
+      <textarea id="extract-${esc(k)}" rows="3">${esc(coerceText(extracted[k]))}</textarea>
     </div>`).join('');
 
   reviewEl.style.display = 'block';
 }
 
 function applyExtraction() {
-  const filled = Object.keys(extractedData).filter(k => extractedData[k]);
+  const filled = Object.keys(extractedData).filter(k => coerceText(extractedData[k]).trim());
   let applied = 0;
   filled.forEach(k => {
     const extractEl = document.getElementById('extract-'+k);
@@ -1940,13 +2301,8 @@ function applyExtraction() {
     }
   });
   dismissExtraction();
-  // Trigger autosave
   triggerAutosave();
-  // Brief confirmation
-  const zone = document.getElementById('upload-zone');
-  const orig = zone.querySelector('.upload-zone-title').textContent;
-  zone.querySelector('.upload-zone-title').textContent = `✓ Applied ${applied} field${applied!==1?'s':''} to profile`;
-  setTimeout(() => { zone.querySelector('.upload-zone-title').textContent = orig; }, 3000);
+  toast(`Applied ${applied} field${applied!==1?'s':''} to the profile`, 'success');
 }
 
 function dismissExtraction() {
@@ -1954,18 +2310,60 @@ function dismissExtraction() {
   extractedData = {};
 }
 
-function slugify(s){return(s||'untitled').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');}
-
 // ── TOOLTIP ──
+let tooltipCloser = null;
 function toggleAngleTooltip(){
   const btn=document.getElementById('angle-tooltip-btn');
   const panel=document.getElementById('angle-tooltip-panel');
   const isOpen=panel.classList.toggle('open');
   btn.classList.toggle('open',isOpen);
-  if(isOpen){setTimeout(()=>{document.addEventListener('click',function closeT(e){if(!document.getElementById('angle-tooltip-btn').contains(e.target)&&!document.getElementById('angle-tooltip-panel').contains(e.target)){panel.classList.remove('open');btn.classList.remove('open');document.removeEventListener('click',closeT);}});},0);}
+  if(tooltipCloser){document.removeEventListener('click',tooltipCloser);tooltipCloser=null;}
+  if(isOpen){
+    tooltipCloser=function(e){
+      if(!btn.contains(e.target)&&!panel.contains(e.target)){
+        panel.classList.remove('open');btn.classList.remove('open');
+        document.removeEventListener('click',tooltipCloser);tooltipCloser=null;
+      }
+    };
+    setTimeout(()=>document.addEventListener('click',tooltipCloser),0);
+  }
 }
 
-// ── START ──
+// ── DELEGATED ACTIONS ──
+// All dynamic content uses data-action instead of inline onclick handlers, so
+// user/model text is never serialized into HTML attributes.
+const ACTIONS = {
+  'go-home': () => goHome(),
+  'new-client': () => openWorkspace(null, 'profile'),
+  'open-client': el => openWorkspace(el.dataset.id, 'profile'),
+  'ws-tab': el => showTab(el.dataset.tab),
+  'toggle-concept': el => toggleC(el),
+  'hook-chip': el => selectHookChip(parseInt(el.dataset.cidx), parseInt(el.dataset.hidx)),
+  'copy-script': el => { const c = getScript(parseInt(el.dataset.cidx)); if (c) copyWithFeedback(el, c.script); },
+  'copy-hook': el => {
+    const i = parseInt(el.dataset.cidx); const c = getScript(i); if (!c) return;
+    const hooks = conceptHooks(c); const h = hooks[activeHookIdx[i]||0] || hooks[0];
+    copyWithFeedback(el, h.hook);
+  },
+  'dl': el => {
+    const kind = el.dataset.kind;
+    if (kind.startsWith('legacy-')) dlLegacyHooks(kind);
+    else dlConcept(kind, parseInt(el.dataset.cidx));
+  },
+  'zip': el => downloadAllAsZip(el.dataset.type),
+  'gen-load': el => loadGenerationById(el.dataset.gid),
+  'gen-del': el => deleteGenerationById(el.dataset.gid),
+  'gen-clear': () => clearAllGenerations(),
+  'file-del': el => deleteFileById(el.dataset.fid),
+  'version-restore': () => restoreVersion(),
+  'version-back': () => loadVersion('current'),
+};
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-action]');
+  if (!el) return;
+  const handler = ACTIONS[el.dataset.action];
+  if (handler) handler(el, e);
+});
 
 // ── PASSWORD GATE ──
 // Change this to whatever password you want
@@ -1990,18 +2388,13 @@ function checkPassword() {
   }
 }
 
-// Check if already authenticated this session
+// ── START ──
 if(sessionStorage.getItem(PW_KEY) === 'true') {
   document.getElementById('pw-gate').style.display = 'none';
-  // init() called below after DOM ready
+  init();
 } else {
-  // Focus password input
   setTimeout(() => { const el = document.getElementById('pw-input'); if(el) el.focus(); }, 100);
 }
-
-// Only auto-init if already authenticated
-if(sessionStorage.getItem(PW_KEY) === 'true') { init(); }
-
 
 </script>
 </body>
