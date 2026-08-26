@@ -29,7 +29,10 @@ const MAX_MAX_TOKENS = 64000;
 const FETCH_SITE_KEYWORDS = ['service','testimonial','review','about','case-stud','results','work','portfolio','pricing','why'];
 const FETCH_SITE_MAX_PAGES = 5;       // homepage + up to 4 subpages
 const FETCH_SITE_MAX_CHARS = 9000;    // per page, keeps the extraction prompt sane
-const FETCH_SITE_UA = 'Mozilla/5.0 (compatible; ForgeVSLEngine/1.0; +https://forgemarketingteam.com)';
+// A real browser UA — WordPress security plugins (e.g. on besthvacinc.com)
+// serve bot-identifying UAs an empty challenge page, which made scans return
+// zero pages. Standard Chrome UA passes.
+const FETCH_SITE_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36';
 
 export default {
   async fetch(request, env) {
