@@ -210,6 +210,10 @@ body.in-ws .desktop-tabs{display:flex}
 .copy-btn{font-size:12px;font-family:'DM Mono',monospace;padding:9px 13px;border:1px solid var(--border);border-radius:var(--r);background:transparent;color:var(--muted);cursor:pointer;transition:all 0.15s;min-height:40px;-webkit-tap-highlight-color:transparent}
 .copy-btn:hover,.copy-btn:active{border-color:var(--border2);color:var(--text)}
 .copy-btn.copied{border-color:var(--accent-border);color:var(--accent)}
+.edit-toggle{min-height:32px;padding:6px 10px;font-size:11px}
+.concept-card.editing [data-edit]{outline:1.5px dashed var(--accent-border);outline-offset:3px;border-radius:4px;cursor:text}
+.concept-card.editing [data-edit]:focus{outline-style:solid;background:var(--accent-dim)}
+.concept-card.editing .concept-header{cursor:default}
 
 .version-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px;flex-wrap:wrap}
 .version-select-wrap{display:flex;align-items:center;gap:8px;flex:1;min-width:220px}
@@ -528,6 +532,10 @@ body:not(.in-ws) .toast-wrap{bottom:calc(20px + var(--safe-bottom))}
             <span class="field-label">Primary goal</span>
             <div class="badge-grid" id="goal-badges"></div>
           </div>
+          <div>
+            <span class="field-label">On camera</span>
+            <div class="badge-grid" id="talent-badges"></div>
+          </div>
           <div class="gen-ctrl-full">
             <span class="field-label">Concept focus</span>
             <div class="badge-grid" id="offer-chips"></div>
@@ -634,6 +642,11 @@ const GOALS = {
   prequalify: { label:'Pre-qualify', prompt:'pre-qualify — attract only serious high-intent buyers, actively repel bad-fit leads' },
 };
 
+const TALENT_MODES = {
+  spokesperson: { label:'Hired spokesperson', prompt:`The ad is delivered by a HIRED SPOKESPERSON — professional talent who is NOT the owner or an employee and does NOT film at the business location. Write every script so a third party can credibly deliver it: the spokesperson speaks on behalf of the brand (third person "the team at X" or brand-advocate "we" both work) but NEVER claims to personally be the owner, a technician, or to have personally done the work — no "I founded", "my crew", "I'll come out", no first-person tenure claims. All proof and tenure is attributed to the company or its named people ("their lead tech Nick", "the Best family has run this since 1998"). The creator brief must be filmable ANYWHERE — home studio, neutral interior, or seamless backdrop; never require the business location, branded uniforms, or company vehicles. In the edit brief, mark any footage of the actual business (trucks, jobsites, team) as "client-supplied b-roll".` },
+  owner: { label:'Owner / employee', prompt:`The ad is delivered by the OWNER or an EMPLOYEE of the business (see Spokesperson/talent in the profile). First person is encouraged — personal tenure, stories, and "my team" language build trust and should be used where the profile supports them. The creator brief may place them on location: the shop, a jobsite, a company vehicle, team in the background.` },
+};
+
 // One object per angle: label (select), tooltip (help panel), prompt (sent to the model).
 const ANGLES = {
   problem_agitation: {
@@ -667,16 +680,18 @@ const ANGLES = {
 };
 
 // Length id drives the prompt word target, max_tokens, and the UI label.
-// tokensPerConcept measured against the live worker: one full concept package
-// (script + 4 alt hooks + brief + why) runs ~1,800 output tokens even at the
-// shortest length — the brief and alt hooks dominate, not the script.
+// tokensPerConcept measured against the live worker. Two things eat budget
+// beyond the script itself: the alt hooks + both briefs (~2k), and the model's
+// THINKING tokens, which share the same max_tokens pool on this model and vary
+// with profile richness — so these carry deliberate headroom. Truncation at
+// these levels means the profile is unusually heavy; drop concept count.
 const LENGTHS = [
-  { id:'15-30',   label:'15–30s',  words:[40,75],   tokensPerConcept:3300 },
-  { id:'30-45',   label:'30–45s',  words:[75,110],  tokensPerConcept:3500 },
-  { id:'45-60',   label:'45–60s',  words:[110,150], tokensPerConcept:3700 },
-  { id:'60-90',   label:'60–90s',  words:[150,225], tokensPerConcept:4100 },
-  { id:'90-120',  label:'90–120s', words:[225,300], tokensPerConcept:4500 },
-  { id:'120-180', label:'2–3 min', words:[300,450], tokensPerConcept:5100 },
+  { id:'15-30',   label:'15–30s',  words:[40,75],   tokensPerConcept:5000 },
+  { id:'30-45',   label:'30–45s',  words:[75,110],  tokensPerConcept:5200 },
+  { id:'45-60',   label:'45–60s',  words:[110,150], tokensPerConcept:5400 },
+  { id:'60-90',   label:'60–90s',  words:[150,225], tokensPerConcept:5800 },
+  { id:'90-120',  label:'90–120s', words:[225,300], tokensPerConcept:6200 },
+  { id:'120-180', label:'2–3 min', words:[300,450], tokensPerConcept:6800 },
 ];
 const DEFAULT_LENGTH = '90-120';
 
@@ -858,6 +873,7 @@ let clientFiles = {};
 let lastOutputData = null;
 let lastOutputClient = null;
 let lastOutputMeta = null;        // { stage, goal, length } ids (or legacy strings)
+let lastOutputGenId = null;       // generations row id for the output on screen (edits save back to it)
 let activeHookIdx = {};           // { conceptIdx: 0..4 } — which hook chip is shown
 let generating = false;
 
@@ -970,7 +986,7 @@ function updateCrumb() {
 }
 
 function clearOutputPanel() {
-  lastOutputData = null; lastOutputClient = null; lastOutputMeta = null; activeHookIdx = {};
+  lastOutputData = null; lastOutputClient = null; lastOutputMeta = null; lastOutputGenId = null; activeHookIdx = {};
   const out = document.getElementById('output-section');
   if (out) {
     out.style.display = 'none';
@@ -1199,8 +1215,9 @@ function loadGenerationById(gid) {
   const c = clients.find(x => x.id === activeClientId);
   lastOutputData = normalizeGeneration({ concepts: gen.concepts || [], winner_pick: gen.winner || '', hooks: gen.hooks || [] });
   lastOutputClient = c;
+  lastOutputGenId = gen.id;
   const focusVals = [...new Set((gen.concepts||[]).map(c=>sTxt(c._focus,'')).filter(Boolean))];
-  lastOutputMeta = { stage: gen.stage || '', goal: gen.goal || '', length: gen.length || '', focus: focusVals.length===0?'':(focusVals.length===1?focusVals[0]:'Split test: '+focusVals.length+' offers') };
+  lastOutputMeta = { stage: gen.stage || '', goal: gen.goal || '', length: gen.length || '', focus: focusVals.length===0?'':(focusVals.length===1?focusVals[0]:'Split test: '+focusVals.length+' offers'), talent: sTxt(((gen.concepts||[])[0]||{})._talent,'') };
   activeHookIdx = {};
   showTab('generate');
   renderOutputDisplay();
@@ -1286,12 +1303,13 @@ function buildGenControls() {
   const badge = (val, label, active) => `<span class="badge${active?' active':''}" data-val="${esc(val)}">${esc(label)}</span>`;
   document.getElementById('stage-badges').innerHTML = Object.keys(STAGES).map((k,i)=>badge(k,STAGES[k].label,i===0)).join('');
   document.getElementById('goal-badges').innerHTML = Object.keys(GOALS).map((k,i)=>badge(k,GOALS[k].label,i===0)).join('');
+  document.getElementById('talent-badges').innerHTML = Object.keys(TALENT_MODES).map((k,i)=>badge(k,TALENT_MODES[k].label,i===0)).join('');
   document.getElementById('length-badges').innerHTML = LENGTHS.map(l=>badge(l.id,l.label,l.id===DEFAULT_LENGTH)).join('');
   document.getElementById('qty-badges').innerHTML = [1,2,3,4,5].map(n=>badge(String(n),String(n),n===2)).join('');
   document.getElementById('angle-select').innerHTML = Object.keys(ANGLES).map(k=>`<option value="${esc(k)}">${esc(ANGLES[k].label)}</option>`).join('');
   document.getElementById('angle-tooltip-panel').innerHTML = `<div class="tooltip-panel-title">Script Angle Guide</div>` +
     Object.keys(ANGLES).map(k=>`<div class="tooltip-angle"><div class="tooltip-angle-name">${esc(ANGLES[k].label)}</div><div class="tooltip-angle-desc">${esc(ANGLES[k].tooltip)}</div></div>`).join('');
-  ['stage-badges','goal-badges','length-badges','qty-badges'].forEach(gId=>{
+  ['stage-badges','goal-badges','talent-badges','length-badges','qty-badges'].forEach(gId=>{
     document.getElementById(gId).addEventListener('click',e=>{
       const b=e.target.closest('.badge'); if(!b) return;
       document.querySelectorAll('#'+gId+' .badge').forEach(x=>x.classList.remove('active'));
@@ -1413,7 +1431,7 @@ document.getElementById('offer-chips').addEventListener('click',e=>{
 document.getElementById('qty-badges').addEventListener('click',updateFocusNote);
 
 // ── PROMPT BUILDER ──
-function buildPrompt(client, stage, goal, angle, lengthId, qty, focus) {
+function buildPrompt(client, stage, goal, angle, lengthId, qty, focus, talentMode) {
   const c = k => (client[k]||'').trim();
   const L = LENGTHS.find(l => l.id === lengthId) || LENGTHS[4];
   const proofBlock = [c('proof1'), c('proof2')].filter(Boolean).join('\n');
@@ -1482,6 +1500,9 @@ OFFER-TIER RULES — match the ad to what's being sold:
 EXEMPLARS — these are real Forge winners (details anonymized). They ARE the target style: match their rhythm, sentence density, and structure, leaning on the exemplar closest to your target length. Do NOT reuse their wording, their industries' specifics, or their clients' numbers — every fact in your scripts comes from the CLIENT PROFILE below and nowhere else.
 ${EXEMPLARS.map((e,i)=>`<exemplar_${i+1} length="${e.label}">\n${e.text}\n</exemplar_${i+1}>`).join('\n')}
 
+ON-CAMERA TALENT:
+${(TALENT_MODES[talentMode]||TALENT_MODES.spokesperson).prompt}
+
 CLIENT PROFILE:
 ${profile}
 PROOF (use ONLY these — never invent): ${proofBlock || 'None provided — lean on mechanism and authority, and make no numeric claims.'}
@@ -1532,9 +1553,10 @@ async function generate(){
   const stage=getActive('stage-badges'), goal=getActive('goal-badges'), lengthId=getActive('length-badges');
   const angle=document.getElementById('angle-select').value;
   const focus=getSelectedOffers();
+  const talentMode=getActive('talent-badges')||'spokesperson';
   const qty=parseInt(getActive('qty-badges'))||2;
   const L=LENGTHS.find(l=>l.id===lengthId)||LENGTHS[4];
-  const maxTokens=Math.min(30000, 600 + qty * L.tokensPerConcept);
+  const maxTokens=Math.min(40000, 1000 + qty * L.tokensPerConcept);
 
   document.getElementById('empty-state').style.display='none';
   document.getElementById('output-section').style.display='none';
@@ -1547,24 +1569,25 @@ async function generate(){
   let mi=0;const lint=setInterval(()=>{document.getElementById('loading-text').textContent=loadMsgs[mi++%loadMsgs.length];},2200);
 
   try{
-    const raw=await callWorker({ prompt: buildPrompt(client,stage,goal,angle,lengthId,qty,focus), max_tokens: maxTokens });
+    const raw=await callWorker({ prompt: buildPrompt(client,stage,goal,angle,lengthId,qty,focus,talentMode), max_tokens: maxTokens });
     const data=normalizeGeneration(parseWorkerJSON(raw));
     if(!data.concepts.length) throw new Error('The model returned no concepts. Try again.');
 
     const assigned=assignOffers(focus,qty);
     if(assigned) data.concepts.forEach((c,i)=>{ c.focus=offerLabel(assigned[i]||''); });
     lastOutputData=data; lastOutputClient=client;
-    lastOutputMeta={stage,goal,length:lengthId,focus:focus.length===0?'':(focus.length===1?offerLabel(focus[0]):'Split test: '+focus.length+' offers')};
+    lastOutputMeta={stage,goal,length:lengthId,focus:focus.length===0?'':(focus.length===1?offerLabel(focus[0]):'Split test: '+focus.length+' offers'),talent:talentMode};
     activeHookIdx={};
 
     // Always persist successful generations
     try{
-      await sb.insert('generations',{
+      const rows = await sb.insert('generations',{
         client_id:client.id, saved_at:humanNow(), saved_at_iso:new Date().toISOString(),
         output_type:'concepts', stage, goal, angle, length:lengthId,
         winner:data.winner_pick||'',
-        concepts:data.concepts.map(c=>({...c,_focus:c.focus||''})), hooks:[]
+        concepts:data.concepts.map(c=>({...c,_focus:c.focus||'',_talent:talentMode})), hooks:[]
       });
+      lastOutputGenId = (Array.isArray(rows) && rows[0]) ? rows[0].id : null;
       await loadClientGenerations(client.id);
     }catch(e){
       console.warn('Failed to save generation:',e);
@@ -1598,7 +1621,7 @@ function renderOutputDisplay(){
   document.getElementById('error-box').style.display='none';
   document.getElementById('empty-state').style.display='none';
 
-  document.getElementById('output-meta').innerHTML=[client.bizname,stageLabel(meta.stage),goalLabel(meta.goal),lengthLabel(meta.length),meta.focus?'Focus: '+meta.focus:'']
+  document.getElementById('output-meta').innerHTML=[client.bizname,stageLabel(meta.stage),goalLabel(meta.goal),lengthLabel(meta.length),(TALENT_MODES[meta.talent]||{}).label||'',meta.focus?'Focus: '+meta.focus:'']
     .filter(Boolean).map(t=>`<span class="out-tag">${esc(t)}</span>`).join('');
 
   document.getElementById('winner-area').innerHTML=data.winner_pick
@@ -1624,33 +1647,33 @@ function renderOutputDisplay(){
     const hIdx=activeHookIdx[i]||0;
     const active=hooks[hIdx]||hooks[0];
     const card=document.createElement('div');card.className='concept-card';
-    card.innerHTML=`<div class="concept-header" data-action="toggle-concept"><div><div class="concept-num">CONCEPT ${String(i+1).padStart(2,'0')}${c.focus?' · '+esc(c.focus.length>40?c.focus.slice(0,38)+'…':c.focus):''}</div><div class="concept-title">${esc(c.title||('Concept '+(i+1)))}</div></div><div class="concept-toggle ${i===0?'open':''}">⌄</div></div>
+    card.innerHTML=`<div class="concept-header" data-action="toggle-concept"><div><div class="concept-num">CONCEPT ${String(i+1).padStart(2,'0')}${c.focus?' · '+esc(c.focus.length>40?c.focus.slice(0,38)+'…':c.focus):''}</div><div class="concept-title" data-edit="title">${esc(c.title||('Concept '+(i+1)))}</div></div><div style="display:flex;gap:8px;align-items:flex-start;flex-shrink:0"><button class="copy-btn edit-toggle" data-action="edit-concept" data-cidx="${i}">✎ Edit</button><div class="concept-toggle ${i===0?'open':''}">⌄</div></div></div>
     <div class="concept-body ${i===0?'open':''}">
       <div class="csec">
         <div class="csec-label">Hook${hooks.length>1?'s — primary + '+(hooks.length-1)+' alternates':''}</div>
         ${hooks.length>1?`<div class="hook-chips">${hooks.map((h,j)=>`<button class="hook-chip${j===hIdx?' active':''}" data-action="hook-chip" data-cidx="${i}" data-hidx="${j}">${esc(j===0?'Primary':(sTxt(h.type)||'Alt '+j))}</button>`).join('')}</div>`:''}
-        <div class="hook-text" id="hook-text-${i}">${esc(active.hook)}</div>
+        <div class="hook-text" id="hook-text-${i}" data-edit="hook">${esc(active.hook)}</div>
         <div id="hook-extra-${i}">${hookExtraHTML(i,hIdx,active)}</div>
         <div class="copy-row"><button class="copy-btn" data-action="copy-hook" data-cidx="${i}">Copy hook</button></div>
       </div>
-      <div class="csec"><div class="csec-label">Full script</div><div class="script-text">${fmtScript(c.script)}</div>
+      <div class="csec"><div class="csec-label">Full script</div><div class="script-text" data-edit="script">${fmtScript(c.script)}</div>
         <div class="copy-row"><button class="copy-btn" data-action="copy-script" data-cidx="${i}">Copy script</button></div>
       </div>
       ${c.brief?`<div class="csec"><div class="csec-label">Creator brief</div><div class="brief-grid">
-        ${briefCell('Wardrobe',c.brief.wardrobe)}
-        ${briefCell('Setting',c.brief.setting)}
-        ${briefCell('Delivery',c.brief.delivery)}
-        ${briefCell('Tone',c.brief.tone_notes)}
+        ${briefCell('Wardrobe',c.brief.wardrobe,'brief.wardrobe')}
+        ${briefCell('Setting',c.brief.setting,'brief.setting')}
+        ${briefCell('Delivery',c.brief.delivery,'brief.delivery')}
+        ${briefCell('Tone',c.brief.tone_notes,'brief.tone_notes')}
       </div></div>`
       :(c.legacy_directors_note?`<div class="csec"><div class="csec-label">Director's note</div><div class="director-box">${esc(c.legacy_directors_note)}</div></div>`:'')}
       ${c.edit_brief?`<div class="csec"><div class="csec-label">Editor brief</div><div class="brief-grid">
-        ${briefCell('Pacing',c.edit_brief.pacing)}
-        ${briefCell('Captions',c.edit_brief.captions)}
-        ${briefCell('On-screen text',c.edit_brief.on_screen_text)}
-        ${briefCell('B-roll',c.edit_brief.broll)}
-        ${briefCell('End card',c.edit_brief.end_card)}
+        ${briefCell('Pacing',c.edit_brief.pacing,'edit_brief.pacing')}
+        ${briefCell('Captions',c.edit_brief.captions,'edit_brief.captions')}
+        ${briefCell('On-screen text',c.edit_brief.on_screen_text,'edit_brief.on_screen_text')}
+        ${briefCell('B-roll',c.edit_brief.broll,'edit_brief.broll')}
+        ${briefCell('End card',c.edit_brief.end_card,'edit_brief.end_card')}
       </div></div>`:''}
-      ${c.why_it_converts?`<div class="csec"><div class="csec-label">Why this converts</div><div class="insight-box">${esc(c.why_it_converts)}</div></div>`:''}
+      ${c.why_it_converts?`<div class="csec"><div class="csec-label">Why this converts</div><div class="insight-box" data-edit="why_it_converts">${esc(c.why_it_converts)}</div></div>`:''}
       <div class="dl-row">
         <div class="dl-group"><div class="dl-label">Client doc</div><div class="dl-btns">
           <button class="dl-btn client" data-action="dl" data-kind="client-docx" data-cidx="${i}">Word</button>
@@ -1693,8 +1716,8 @@ function renderOutputDisplay(){
   out.scrollIntoView({behavior:'smooth',block:'start'});
 }
 
-function briefCell(label,text){
-  return `<div class="brief-cell"><div class="brief-cell-label">${esc(label)}</div><div class="brief-cell-text">${esc(sTxt(text,'—'))}</div></div>`;
+function briefCell(label,text,editPath){
+  return `<div class="brief-cell"><div class="brief-cell-label">${esc(label)}</div><div class="brief-cell-text"${editPath?` data-edit="${editPath}"`:''}>${esc(sTxt(text,'—'))}</div></div>`;
 }
 
 function hookExtraHTML(cIdx,hIdx,h){
@@ -1712,7 +1735,61 @@ function selectHookChip(cIdx,hIdx){
   document.querySelectorAll(`.hook-chip[data-cidx="${cIdx}"]`).forEach(ch=>ch.classList.toggle('active',parseInt(ch.dataset.hidx)===hIdx));
 }
 
-function toggleC(header){const b=header.nextElementSibling,t=header.querySelector('.concept-toggle'),o=b.classList.toggle('open');t.classList.toggle('open',o);}
+// ── INLINE EDITING ──
+// "✎ Edit" flips a concept card's title, hook, script, briefs, and why-box to
+// contenteditable; "Save changes" writes edits back into lastOutputData AND
+// the generation's row in Supabase, so history and every export (client doc,
+// internal package, editor package, ZIP) carry the edited text — no rerun.
+function editConcept(i, btn){
+  const card=document.querySelectorAll('#concepts-area .concept-card')[i];
+  if(!card) return;
+  const editing=card.classList.contains('editing');
+  if(!editing){
+    card.classList.add('editing');
+    card.querySelector('.concept-body').classList.add('open');
+    card.querySelector('.concept-toggle').classList.add('open');
+    card.querySelectorAll('[data-edit]').forEach(el=>el.setAttribute('contenteditable','true'));
+    btn.textContent='Save changes';
+    btn.classList.add('copied');
+    return;
+  }
+  // collect edits
+  const c=lastOutputData.concepts[i];
+  card.querySelectorAll('[data-edit]').forEach(el=>{
+    const val=el.innerText.replace(/\u00a0/g,' ').trim();
+    const path=el.dataset.edit;
+    if(path==='title') c.title=val;
+    else if(path==='script') c.script=val;
+    else if(path==='why_it_converts') c.why_it_converts=val;
+    else if(path==='hook'){
+      const hIdx=activeHookIdx[i]||0;
+      if(hIdx===0) c.hook=val; else if(c.alt_hooks[hIdx-1]) c.alt_hooks[hIdx-1].hook=val;
+    }
+    else{
+      const [obj,key]=path.split('.');
+      if(c[obj]) c[obj][key]=val;
+    }
+  });
+  card.classList.remove('editing');
+  renderOutputDisplay();
+  persistEditedOutput();
+}
+
+async function persistEditedOutput(){
+  if(!lastOutputGenId){ toast('Edits applied to this view and its downloads (no saved history row to update).','success'); return; }
+  try{
+    const meta=lastOutputMeta||{};
+    await sb.update('generations','id',lastOutputGenId,{
+      concepts:lastOutputData.concepts.map(c=>({...c,_focus:c.focus||'',_talent:meta.talent||''}))
+    });
+    if(activeClientId) clientGenerations[activeClientId]=null, await loadClientGenerations(activeClientId);
+    toast('Changes saved — downloads and history now use your edited version.','success');
+  }catch(err){
+    toast('Edits applied here, but saving to history failed: '+err.message,'error');
+  }
+}
+
+function toggleC(header){if(header.closest('.concept-card')?.classList.contains('editing'))return;const b=header.nextElementSibling,t=header.querySelector('.concept-toggle'),o=b.classList.toggle('open');t.classList.toggle('open',o);}
 function fmtScript(t){return esc(t).replace(/\[(pause|beat|cut|hold|breath)[^\]]*\]/gi,m=>`<span class="pause-note">${m}</span>`);}
 function copyWithFeedback(btn,text){
   const orig=btn.textContent;
@@ -2747,6 +2824,7 @@ const ACTIONS = {
   'open-client': el => openWorkspace(el.dataset.id, 'profile'),
   'ws-tab': el => showTab(el.dataset.tab),
   'toggle-concept': el => toggleC(el),
+  'edit-concept': (el,e) => { e.stopPropagation(); editConcept(parseInt(el.dataset.cidx), el); },
   'hook-chip': el => selectHookChip(parseInt(el.dataset.cidx), parseInt(el.dataset.hidx)),
   'copy-script': el => { const c = getScript(parseInt(el.dataset.cidx)); if (c) copyWithFeedback(el, c.script); },
   'copy-hook': el => {
