@@ -2274,7 +2274,7 @@ async function scanWebsite() {
   try {
     const res = await callWorker({ action: 'fetch_site', url });
     const pages = (res && res.pages) || [];
-    if (!pages.length) throw new Error((res && res.error) || 'No readable pages came back from that site.');
+    if (!pages.length) throw new Error((res && res.error) || 'This site blocks automated scanners (common with WordPress security plugins). Fallback: save the key pages as PDF in your browser (File → Print → Save as PDF) and upload them below — the auto-fill works the same way.');
     progressBar.style.width = '50%';
     progressText.textContent = `Read ${pages.length} page${pages.length!==1?'s':''} — extracting with Claude…`;
     await runSiteExtraction(pages);
