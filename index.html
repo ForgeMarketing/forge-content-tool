@@ -1848,9 +1848,28 @@ function buildClientDocxBlob(concept,client){
   });
 }
 
+// Raw-submission instructions for the creator, aligned with the editor
+// package's version labels: main script cuts become V1, each alternate hook
+// (filmed as its own clip) becomes V2-V5. Drive is the delivery channel.
+function rawsInstructions(concept, base){
+  const alts=(concept.alt_hooks||[]);
+  const lines=[
+    'Upload everything to the Google Drive folder Forge shares with you (link comes separately — if you don\'t have it, ask us before filming).',
+    'Make ONE folder per concept, named exactly:  ' + base,
+    'Inside it, upload the MAIN SCRIPT read as:  ' + base + '-main   — one file is ideal. Multiple takes or parts are fine (name them ' + base + '-main-take1, -take2, …). Do NOT edit, trim, or cut anything together — send the raw takes and we handle the rest.',
+  ];
+  if(alts.length){
+    lines.push('Film EACH alternate hook as its OWN separate video file (required — never combined into one clip):');
+    alts.forEach((h,j)=>lines.push('   ' + base + '-hook-v' + (j+2) + '   —  ' + sTxt(h.type,'Alt ' + (j+1)) + ' hook'));
+    lines.push('Each hook clip is just the opening line(s) re-recorded — the rest of the script is not repeated.');
+  }
+  lines.push('Extra takes are welcome on everything — upload them all. Keep native camera quality (no compression apps), follow the framing in the creator brief, and check your audio on the first take before running the rest.');
+  return lines;
+}
+
 // Internal / talent package: creator brief + alternate hooks + script.
 // Falls back to the old profile-derived briefing block for legacy generations.
-function buildInternalDocxBlob(concept,client){
+function buildInternalDocxBlob(concept,client,idx){
   return new Promise((resolve,reject)=>{
     if(!window.docx){reject(new Error('Word library not loaded'));return;}
     const {Document,Paragraph,TextRun,AlignmentType,BorderStyle,Packer}=window.docx;
@@ -1888,10 +1907,15 @@ function buildInternalDocxBlob(concept,client){
       children.push(secTitle('ALTERNATE HOOKS — SHOOT THESE AS VARIANTS'));
       children.push(new Paragraph({children:[new TextRun({text:'Each replaces the opening line(s) of the script. Film the full script once, then re-record just the opening with each alternate.',size:16,color:'888880',font:'Arial',italics:true})],spacing:{after:140}}));
       alts.forEach((h,i)=>{
-        children.push(new Paragraph({children:[new TextRun({text:'ALT '+(i+1)+(sTxt(h.type)?'  ·  '+sTxt(h.type).toUpperCase():''),bold:true,size:14,color:G,font:'Arial'})],spacing:{after:60}}));
+        children.push(new Paragraph({children:[new TextRun({text:'HOOK V'+(i+2)+(sTxt(h.type)?'  ·  '+sTxt(h.type).toUpperCase():''),bold:true,size:14,color:G,font:'Arial'})],spacing:{after:60}}));
         children.push(new Paragraph({children:[new TextRun({text:sTxt(h.hook,'(empty hook)'),bold:true,size:22,font:'Arial',color:'1a1a18'})],border:{left:{color:G,style:BorderStyle.SINGLE,size:8}},indent:{left:360},spacing:{after:140}}));
       });
     }
+    children.push(secTitle('SUBMITTING YOUR RAWS — READ BEFORE FILMING'));
+    rawsInstructions(concept, conceptBase(concept, idx||0)).forEach((line,n)=>{
+      const isFile=line.startsWith('   ');
+      children.push(new Paragraph({children:[new TextRun({text:isFile?line.trim():((n+1)+'. ')+line,size:isFile?18:20,font:isFile?'Courier New':'Arial',bold:isFile,color:isFile?'1a1a18':'333330'})],indent:{left:isFile?560:200},spacing:{after:isFile?60:110}}));
+    });
     children.push(secTitle('FULL SCRIPT'));
     children.push(new Paragraph({children:[new TextRun({text:'Read exactly as written. [pause] = 1-second beat. Notes in brackets are not read aloud.',size:16,color:'888880',font:'Arial',italics:true})],spacing:{after:200}}));
     scriptLines.forEach(line=>{
@@ -1944,7 +1968,7 @@ function buildClientPdfBlob(concept,client){
   return doc.output('blob');
 }
 
-function buildInternalPdfBlob(concept,client){
+function buildInternalPdfBlob(concept,client,idx){
   const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:'pt',format:'letter'});
   const W=doc.internal.pageSize.getWidth(),PH=doc.internal.pageSize.getHeight(),margin=56;let y=50;
   const chk=n=>{if(y+n>PH-60){doc.addPage();y=50;}};
@@ -1997,7 +2021,7 @@ function buildInternalPdfBlob(concept,client){
     alts.forEach((h,i)=>{
       chk(50);
       doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(61,153,96);
-      doc.text('ALT '+(i+1)+(sTxt(h.type)?'  ·  '+sTxt(h.type).toUpperCase():''),margin,y);y+=12;
+      doc.text('HOOK V'+(i+2)+(sTxt(h.type)?'  ·  '+sTxt(h.type).toUpperCase():''),margin,y);y+=12;
       const aLines=doc.splitTextToSize(sTxt(h.hook,'(empty hook)'),W-margin*2-14);
       doc.setFillColor(61,153,96);doc.rect(margin,y-8,3,Math.max(16,aLines.length*14),'F');
       doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(20,20,18);
@@ -2005,6 +2029,22 @@ function buildInternalPdfBlob(concept,client){
     });
     y+=6;
   }
+  chk(60);
+  secTitle('SUBMITTING YOUR RAWS — READ BEFORE FILMING');
+  rawsInstructions(concept, conceptBase(concept, idx||0)).forEach((line,n)=>{
+    const isFile=line.startsWith('   ');
+    if(isFile){
+      chk(14);
+      doc.setFont('courier','bold');doc.setFontSize(8.5);doc.setTextColor(20,20,18);
+      doc.text(line.trim(),margin+22,y);y+=12;
+    } else {
+      const ls=doc.splitTextToSize((n+1)+'. '+line,W-margin*2-8);
+      chk(ls.length*12+6);
+      doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.setTextColor(50,50,46);
+      doc.text(ls,margin+6,y);y+=ls.length*12+6;
+    }
+  });
+  y+=6;
   chk(60);
   secTitle('FULL SCRIPT');
   doc.setFont('helvetica','italic');doc.setFontSize(9);doc.setTextColor(120,120,116);
@@ -2028,7 +2068,7 @@ function buildInternalPdfBlob(concept,client){
 // versions to cut, the edit brief, deliverable specs, brand notes, and the
 // numbered script. Mirrors the deck promise: multiple hook variations per
 // concept, mobile + desktop delivery, captions burned in.
-const EDITOR_RAWS_NOTE = 'Raws may be pro-creator footage (VSL Engine) or client-filmed phone footage (Reverse VSL). Pick the strongest take per line, clean the audio, stabilize handheld footage as needed.';
+const EDITOR_RAWS_NOTE = 'Raws may be pro-creator footage (VSL Engine) or client-filmed phone footage (Reverse VSL). They arrive in a Drive folder per concept: the main script read as <base>-main (possibly multiple takes, -take1/-take2 — uncut), and each alternate hook as its own clip named <base>-hook-v2 through -v5, matching the version labels below. Pick the strongest take per line, clean the audio, stabilize handheld footage as needed.';
 const EDITOR_DELIVERABLES = 'Deliver mobile 9:16 vertical AND desktop/feed format. Captions burned in on every version. Keep captions and on-screen text inside platform safe zones. One file per hook version, per format.';
 
 function editorVersionLines(concept){
@@ -2238,8 +2278,8 @@ function dlConcept(kind,idx){
   try{
     if(kind==='client-docx') buildClientDocxBlob(c,client).then(b=>saveBlob(b,base+'-client.docx')).catch(fail);
     else if(kind==='client-pdf') saveBlob(buildClientPdfBlob(c,client),base+'-client.pdf');
-    else if(kind==='internal-docx') buildInternalDocxBlob(c,client).then(b=>saveBlob(b,base+'-internal.docx')).catch(fail);
-    else if(kind==='internal-pdf') saveBlob(buildInternalPdfBlob(c,client),base+'-internal.pdf');
+    else if(kind==='internal-docx') buildInternalDocxBlob(c,client,idx).then(b=>saveBlob(b,base+'-internal.docx')).catch(fail);
+    else if(kind==='internal-pdf') saveBlob(buildInternalPdfBlob(c,client,idx),base+'-internal.pdf');
     else if(kind==='editor-docx') buildEditorDocxBlob(c,client,idx).then(b=>saveBlob(b,base+'-editor.docx')).catch(fail);
     else if(kind==='editor-pdf') saveBlob(buildEditorPdfBlob(c,client,idx),base+'-editor.pdf');
     else if(kind==='hooks-docx') buildHooksDocxBlob(conceptHooks(c),client,'Hook Variants — '+sTxt(c.title,'Concept '+(idx+1))).then(b=>saveBlob(b,base+'-hooks.docx')).catch(fail);
@@ -2283,15 +2323,15 @@ async function downloadAllAsZip(type){
     try{
       if(type==='client-docx'){zip.file(base+'-client.docx',await buildClientDocxBlob(c,client));}
       else if(type==='client-pdf'){zip.file(base+'-client.pdf',buildClientPdfBlob(c,client));}
-      else if(type==='internal-docx'){zip.file(base+'-internal.docx',await buildInternalDocxBlob(c,client));}
-      else if(type==='internal-pdf'){zip.file(base+'-internal.pdf',buildInternalPdfBlob(c,client));}
+      else if(type==='internal-docx'){zip.file(base+'-internal.docx',await buildInternalDocxBlob(c,client,i));}
+      else if(type==='internal-pdf'){zip.file(base+'-internal.pdf',buildInternalPdfBlob(c,client,i));}
       else if(type==='all'){
         const folder=zip.folder(base);
-        const[cBlob,iBlob]=await Promise.all([buildClientDocxBlob(c,client),buildInternalDocxBlob(c,client)]);
+        const[cBlob,iBlob]=await Promise.all([buildClientDocxBlob(c,client),buildInternalDocxBlob(c,client,i)]);
         folder.file(base+'-client.docx',cBlob);
         folder.file(base+'-client.pdf',buildClientPdfBlob(c,client));
         folder.file(base+'-internal.docx',iBlob);
-        folder.file(base+'-internal.pdf',buildInternalPdfBlob(c,client));
+        folder.file(base+'-internal.pdf',buildInternalPdfBlob(c,client,i));
         const hooks=conceptHooks(c);
         if(hooks.length>1) folder.file(base+'-hooks.txt',buildHooksTextBlob(hooks,client,'Hook Variants — '+sTxt(c.title,'Concept '+(i+1))));
         if(c.edit_brief){
