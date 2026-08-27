@@ -46,8 +46,11 @@ html{font-size:16px;-webkit-text-size-adjust:100%}
 body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
 .topbar{position:fixed;top:0;left:0;right:0;height:var(--topbar-h);display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 20px;border-bottom:1px solid var(--border);background:var(--chrome);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);z-index:200}
 .logo{display:flex;align-items:center;gap:9px;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;letter-spacing:0.02em;flex-shrink:0}
-.logomark{width:26px;height:26px;background:var(--accent);border-radius:5px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.logomark svg{width:13px;height:13px}
+.brand-logo{height:24px;width:auto;display:block}
+.logo-on-light{display:none}
+body.light .logo-on-light{display:block}
+body.light .logo-on-dark{display:none}
+.pw-brand{height:38px;width:auto;margin:0 auto}
 .logo-sub{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.05em}
 .topbar-right{display:flex;align-items:center;gap:12px;min-width:0}
 .crumb{display:none;align-items:center;gap:7px;font-size:13px;min-width:0}
@@ -302,7 +305,7 @@ body:not(.in-ws) .toast-wrap{bottom:calc(20px + var(--safe-bottom))}
 @media(max-width:767px){
   .desktop-tabs{display:none!important}
   .logo-sub{display:none}
-  body.in-ws .logo-word{display:none}
+  body.in-ws .brand-logo{display:none!important}
   .crumb-name{min-width:50px}
   body.in-ws .bottom-nav{display:block}
   body.in-ws .app-body{padding-bottom:calc(var(--bottomnav-h) + var(--safe-bottom) + 8px)}
@@ -317,9 +320,7 @@ body:not(.in-ws) .toast-wrap{bottom:calc(20px + var(--safe-bottom))}
 <style>
 #pw-gate{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px}
 .pw-box{background:var(--s1);border:1px solid var(--border);border-radius:var(--r2);padding:40px 32px;width:100%;max-width:360px;text-align:center}
-.pw-logo{display:flex;align-items:center;justify-content:center;gap:10px;font-family:'Syne',sans-serif;font-size:18px;font-weight:700;margin-bottom:8px}
-.pw-logomark{width:30px;height:30px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center}
-.pw-logomark svg{width:15px;height:15px}
+.pw-logo{display:flex;align-items:center;justify-content:center;margin-bottom:10px}
 .pw-sub{font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:28px}
 .pw-label{font-size:11px;font-family:'DM Mono',monospace;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);display:block;text-align:left;margin-bottom:7px}
 .pw-input{width:100%;font-size:16px;padding:12px 14px;border:1px solid var(--border);border-radius:var(--r);background:var(--s2);color:var(--text);font-family:'Inter',sans-serif;-webkit-appearance:none;text-align:center;letter-spacing:0.08em;margin-bottom:12px;transition:border-color 0.15s}
@@ -332,12 +333,13 @@ body:not(.in-ws) .toast-wrap{bottom:calc(20px + var(--safe-bottom))}
 </style>
 </head>
 <body>
+<script>try{if((localStorage.getItem('forge_theme')||'light')==='light')document.body.classList.add('light');}catch(e){}</script>
 
 <div id="pw-gate">
   <div class="pw-box">
     <div class="pw-logo">
-      <div class="pw-logomark"><svg viewBox="0 0 13 13" fill="none"><path d="M2 11L6.5 2L11 11" stroke="#0c0c0b" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M3.8 7.8H9.2" stroke="#0c0c0b" stroke-width="1.7" stroke-linecap="round"/></svg></div>
-      Forge
+      <img class="pw-brand logo-on-light" src="assets/forge-logo-gold.png" alt="Forge Marketing">
+      <img class="pw-brand logo-on-dark" src="assets/forge-logo-light.png" alt="Forge Marketing">
     </div>
     <div class="pw-sub">VSL Engine &nbsp;·&nbsp; Internal Tool</div>
     <label class="pw-label">Password</label>
@@ -349,8 +351,9 @@ body:not(.in-ws) .toast-wrap{bottom:calc(20px + var(--safe-bottom))}
 
 <div class="topbar">
   <div class="logo">
-    <div class="logomark"><svg viewBox="0 0 13 13" fill="none"><path d="M2 11L6.5 2L11 11" stroke="#0c0c0b" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M3.8 7.8H9.2" stroke="#0c0c0b" stroke-width="1.7" stroke-linecap="round"/></svg></div>
-    <span class="logo-word">Forge</span> <span class="logo-sub">VSL Engine</span>
+    <img class="brand-logo logo-on-light" src="assets/forge-logo-gold.png" alt="Forge Marketing">
+    <img class="brand-logo logo-on-dark" src="assets/forge-logo-light.png" alt="Forge Marketing">
+    <span class="logo-sub">VSL Engine</span>
   </div>
   <div class="desktop-tabs" id="ws-tabs">
     <button class="tab" data-action="ws-tab" data-tab="profile">Profile</button>
@@ -2926,7 +2929,7 @@ function toggleTheme(){
   localStorage.setItem('forge_theme', t);
   applyTheme(t);
 }
-applyTheme(localStorage.getItem('forge_theme') || 'dark');
+applyTheme(localStorage.getItem('forge_theme') || 'light');
 
 // ── START ──
 if(sessionStorage.getItem(PW_KEY) === 'true') {
