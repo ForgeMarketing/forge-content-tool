@@ -1826,6 +1826,40 @@ function saveBlob(blob,filename){
   setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 
+// ── SAFE PDF WRITER ──
+// Every jsPDF builder routes text through this: strings wrap to the printable
+// width and the page breaks BEFORE drawing, so nothing clips off the right
+// edge or the bottom of a page (long concept titles and file names were
+// bleeding off in exports sent to creators).
+function pdfWriter(doc){
+  const W=doc.internal.pageSize.getWidth(), PH=doc.internal.pageSize.getHeight(), margin=56;
+  const st={y:56};
+  const ensure=h=>{ if(st.y+h>PH-56){ doc.addPage(); st.y=56; } };
+  const write=(t,o)=>{
+    o=o||{};
+    const size=o.size||10, lh=o.lh||Math.ceil(size*1.32), x=margin+(o.indent||0);
+    const maxW=W-margin-x-14;   // safety pad: jsPDF's measure can run slightly narrow of true render width
+    doc.setFont(o.font||'helvetica',o.style||'normal');
+    doc.setFontSize(size);
+    const c=o.color||[40,40,38]; doc.setTextColor(c[0],c[1],c[2]);
+    const ls=doc.splitTextToSize(String(t||''),maxW);
+    const h=ls.length*lh;
+    ensure(h+(o.after==null?6:o.after));
+    if(o.bar){ doc.setFillColor(o.bar[0],o.bar[1],o.bar[2]); doc.rect(x-10,st.y-size*0.8,3,h,'F'); }
+    doc.text(ls,x,st.y);
+    st.y+=h+(o.after==null?6:o.after);
+  };
+  const rule=(rgb,h)=>{ ensure((h||1)+10); doc.setFillColor(rgb[0],rgb[1],rgb[2]); doc.rect(margin,st.y,W-margin*2,h||1,'F'); st.y+=(h||1)+10; };
+  const space=n=>{ st.y+=n; };
+  const footer=(rgb,txt)=>{
+    ensure(40);
+    doc.setFillColor(rgb[0],rgb[1],rgb[2]); doc.rect(margin,st.y+8,W-margin*2,1,'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(120,120,116);
+    doc.text(txt,W/2,st.y+24,{align:'center'});
+  };
+  return {W,PH,margin,st,ensure,write,rule,space,footer};
+}
+
 // ── DOCX BLOB BUILDERS ──
 function buildClientDocxBlob(concept,client){
   return new Promise((resolve,reject)=>{
@@ -1934,135 +1968,74 @@ function buildInternalDocxBlob(concept,client,idx){
 // ── PDF BLOB BUILDERS ──
 function buildClientPdfBlob(concept,client){
   const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:'pt',format:'letter'});
-  const W=doc.internal.pageSize.getWidth(),margin=56;let y=56;
-  doc.setFillColor(201,153,58);doc.rect(margin,y,W-margin*2,3,'F');y+=18;
-  doc.setFont('helvetica','bold');doc.setFontSize(18);doc.setTextColor(201,153,58);
-  doc.text('FORGE MARKETING',margin,y);y+=18;
-  doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(136,136,128);
-  doc.text('Video Ad Script',margin,y);y+=32;
-  doc.setFillColor(201,153,58);doc.rect(margin,y,W-margin*2,1,'F');y+=24;
-  doc.setFont('helvetica','bold');doc.setFontSize(20);doc.setTextColor(20,20,18);
-  doc.text(client.bizname||'Client',margin,y);y+=22;
-  doc.setFont('helvetica','normal');doc.setFontSize(13);doc.setTextColor(80,80,75);
-  doc.text(sTxt(concept.title,'Untitled script'),margin,y);y+=16;
-  doc.setFontSize(10);doc.setTextColor(136,136,128);
-  doc.text(new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}),margin,y);y+=36;
-  doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(201,153,58);
-  doc.text('HOOK — FIRST 2 SECONDS',margin,y);y+=14;
-  doc.setFillColor(201,153,58);doc.rect(margin,y,3,28,'F');
-  doc.setFont('helvetica','bold');doc.setFontSize(14);doc.setTextColor(20,20,18);
-  const hookLines=doc.splitTextToSize(sTxt(concept.hook,'(no hook provided)'),W-margin*2-16);
-  doc.text(hookLines,margin+12,y+14);y+=Math.max(36,hookLines.length*18)+24;
-  doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(201,153,58);
-  doc.text('FULL SCRIPT',margin,y);y+=16;
+  const P=pdfWriter(doc);const A=[201,153,58];
+  P.rule(A,3);
+  P.write('FORGE MARKETING',{size:18,style:'bold',color:A,after:4});
+  P.write('Video Ad Script',{size:11,color:[136,136,128],after:10});
+  P.rule(A,1);
+  P.write(client.bizname||'Client',{size:20,style:'bold',color:[20,20,18],after:6});
+  P.write(sTxt(concept.title,'Untitled script'),{size:13,color:[80,80,75],after:4});
+  P.write(new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}),{size:10,color:[136,136,128],after:20});
+  P.write('HOOK — FIRST 2 SECONDS',{size:9,style:'bold',color:A,after:8});
+  P.write(sTxt(concept.hook,'(no hook provided)'),{size:14,style:'bold',color:[20,20,18],indent:14,bar:A,after:18});
+  P.write('FULL SCRIPT',{size:9,style:'bold',color:A,after:10});
   (concept.script||'').split('\n').forEach(line=>{
-    if(y>doc.internal.pageSize.getHeight()-80){doc.addPage();y=56;}
+    if(!line.trim()){P.space(8);return;}
     const isNote=/^\[/.test(line.trim());
-    doc.setFont('helvetica',isNote?'italic':'normal');doc.setFontSize(isNote?10:12);
-    doc.setTextColor(isNote?136:20,isNote?136:20,isNote?128:18);
-    if(!line.trim()){y+=8;return;}
-    const wrapped=doc.splitTextToSize(line,W-margin*2);
-    doc.text(wrapped,margin,y);y+=wrapped.length*16+4;
+    P.write(line,{size:isNote?10:12,style:isNote?'italic':'normal',color:isNote?[136,136,128]:[20,20,18],after:5});
   });
-  const PH=doc.internal.pageSize.getHeight();
-  doc.setFillColor(201,153,58);doc.rect(margin,PH-40,W-margin*2,1,'F');
-  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(136,136,128);
-  doc.text('Prepared by Forge Marketing  ·  forgemarketingteam.com',W/2,PH-26,{align:'center'});
+  P.footer(A,'Prepared by Forge Marketing  ·  forgemarketingteam.com');
   return doc.output('blob');
 }
 
 function buildInternalPdfBlob(concept,client,idx){
   const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:'pt',format:'letter'});
-  const W=doc.internal.pageSize.getWidth(),PH=doc.internal.pageSize.getHeight(),margin=56;let y=50;
-  const chk=n=>{if(y+n>PH-60){doc.addPage();y=50;}};
-  const secTitle=t=>{chk(30);doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(61,153,96);doc.text(t,margin,y);y+=14;};
-  doc.setFillColor(61,153,96);doc.rect(margin,y,W-margin*2,3,'F');y+=16;
-  doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(61,153,96);
-  doc.text('FORGE MARKETING — INTERNAL / TALENT PACKAGE',margin,y);y+=20;
-  doc.setFont('helvetica','bold');doc.setFontSize(18);doc.setTextColor(20,20,18);
-  doc.text('Talent Script Package',margin,y);y+=18;
-  doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(100,100,96);
-  doc.text((client.bizname||'Client')+' · '+sTxt(concept.title,'Untitled script')+' · '+new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}),margin,y);
-  y+=6;doc.setFillColor(61,153,96);doc.rect(margin,y,W-margin*2,1,'F');y+=26;
+  const P=pdfWriter(doc);const G=[61,153,96];
+  const sec=t=>{P.space(6);P.write(t,{size:9,style:'bold',color:G,after:8});};
+  P.rule(G,3);
+  P.write('FORGE MARKETING — INTERNAL / TALENT PACKAGE',{size:10,style:'bold',color:G,after:8});
+  P.write('Talent Script Package',{size:18,style:'bold',color:[20,20,18],after:6});
+  P.write((client.bizname||'Client')+' · '+sTxt(concept.title,'Untitled script')+' · '+new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}),{size:10,color:[100,100,96],after:4});
+  P.rule(G,1);
   if(concept.brief){
-    secTitle('CREATOR BRIEF');
+    sec('CREATOR BRIEF');
     [['Wardrobe',concept.brief.wardrobe],['Setting',concept.brief.setting],['Delivery',concept.brief.delivery],['Tone',concept.brief.tone_notes]].forEach(([label,val])=>{
-      chk(34);
-      doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(30,30,28);
-      doc.text(label,margin,y);
-      doc.setFont('helvetica','normal');doc.setTextColor(60,60,56);
-      const wrapped=doc.splitTextToSize(sTxt(val,'—'),W-margin*2-90);
-      doc.text(wrapped,margin+86,y);
-      y+=Math.max(14,wrapped.length*13)+8;
+      P.write(label.toUpperCase(),{size:8,style:'bold',color:[30,30,28],after:2});
+      P.write(sTxt(val,'—'),{size:10,color:[60,60,56],indent:10,after:9});
     });
-    y+=8;
   } else {
-    secTitle('TALENT BRIEFING');
-    doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(30,30,28);
-    doc.text('Spokesperson: '+(client.talent||'See project brief'),margin,y);y+=14;
-    doc.text('Business: '+(client.bizname||'')+'  ·  Platforms: '+((client.platforms||[]).join(', ')||'See brief'),margin,y);y+=20;
+    sec('TALENT BRIEFING');
+    P.write('Spokesperson: '+(client.talent||'See project brief'),{size:10,color:[30,30,28],after:4});
+    P.write('Business: '+(client.bizname||'')+'  ·  Platforms: '+((client.platforms||[]).join(', ')||'See brief'),{size:10,color:[30,30,28],after:10});
     if(concept.legacy_directors_note){
-      secTitle("DIRECTOR'S NOTE");
-      doc.setFillColor(61,153,96);doc.rect(margin,y,3,32,'F');
-      doc.setFont('helvetica','italic');doc.setFontSize(11);doc.setTextColor(40,40,38);
-      const dLines=doc.splitTextToSize(concept.legacy_directors_note,W-margin*2-16);
-      doc.text(dLines,margin+10,y+12);y+=Math.max(40,dLines.length*14)+16;
+      sec("DIRECTOR'S NOTE");
+      P.write(concept.legacy_directors_note,{size:11,style:'italic',color:[40,40,38],indent:12,bar:G,after:10});
     }
   }
-  chk(70);
-  secTitle('HOOK — NAIL THIS IN 2 SECONDS');
-  doc.setFillColor(61,153,96);doc.rect(margin,y,4,36,'F');
-  doc.setFont('helvetica','bold');doc.setFontSize(15);doc.setTextColor(10,10,8);
-  const hLines=doc.splitTextToSize(sTxt(concept.hook,'(no hook provided)'),W-margin*2-14);
-  doc.text(hLines,margin+12,y+14);y+=Math.max(42,hLines.length*18)+20;
+  sec('HOOK — NAIL THIS IN 2 SECONDS');
+  P.write(sTxt(concept.hook,'(no hook provided)'),{size:14,style:'bold',color:[10,10,8],indent:14,bar:G,after:14});
   const alts=(concept.alt_hooks||[]);
   if(alts.length){
-    chk(50);
-    secTitle('ALTERNATE HOOKS — SHOOT THESE AS VARIANTS');
-    doc.setFont('helvetica','italic');doc.setFontSize(9);doc.setTextColor(120,120,116);
-    doc.text('Each replaces the opening line(s). Film the full script once, then re-record just the opening with each alternate.',margin,y);y+=16;
+    sec('ALTERNATE HOOKS — SHOOT THESE AS VARIANTS');
+    P.write('Each replaces the opening line(s). Film the full script once, then re-record just the opening with each alternate.',{size:9,style:'italic',color:[120,120,116],after:10});
     alts.forEach((h,i)=>{
-      chk(50);
-      doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(61,153,96);
-      doc.text('HOOK V'+(i+2)+(sTxt(h.type)?'  ·  '+sTxt(h.type).toUpperCase():''),margin,y);y+=12;
-      const aLines=doc.splitTextToSize(sTxt(h.hook,'(empty hook)'),W-margin*2-14);
-      doc.setFillColor(61,153,96);doc.rect(margin,y-8,3,Math.max(16,aLines.length*14),'F');
-      doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(20,20,18);
-      doc.text(aLines,margin+12,y+2);y+=Math.max(20,aLines.length*14)+10;
+      P.write('HOOK V'+(i+2)+(sTxt(h.type)?'  ·  '+sTxt(h.type).toUpperCase():''),{size:8,style:'bold',color:G,after:3});
+      P.write(sTxt(h.hook,'(empty hook)'),{size:11,style:'bold',color:[20,20,18],indent:14,bar:G,after:11});
     });
-    y+=6;
   }
-  chk(60);
-  secTitle('SUBMITTING YOUR RAWS — READ BEFORE FILMING');
+  sec('SUBMITTING YOUR RAWS — READ BEFORE FILMING');
   rawsInstructions(concept, conceptBase(concept, idx||0)).forEach((line,n)=>{
-    const isFile=line.startsWith('   ');
-    if(isFile){
-      chk(14);
-      doc.setFont('courier','bold');doc.setFontSize(8.5);doc.setTextColor(20,20,18);
-      doc.text(line.trim(),margin+22,y);y+=12;
-    } else {
-      const ls=doc.splitTextToSize((n+1)+'. '+line,W-margin*2-8);
-      chk(ls.length*12+6);
-      doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.setTextColor(50,50,46);
-      doc.text(ls,margin+6,y);y+=ls.length*12+6;
-    }
+    if(line.startsWith('   ')) P.write(line.trim(),{font:'courier',style:'bold',size:8.5,color:[20,20,18],indent:22,after:4});
+    else P.write((n+1)+'. '+line,{size:9.5,color:[50,50,46],indent:4,after:7});
   });
-  y+=6;
-  chk(60);
-  secTitle('FULL SCRIPT');
-  doc.setFont('helvetica','italic');doc.setFontSize(9);doc.setTextColor(120,120,116);
-  doc.text('Read exactly as written. [pause] = 1-second beat. Notes in brackets are not read aloud.',margin,y);y+=18;
+  sec('FULL SCRIPT');
+  P.write('Read exactly as written. [pause] = 1-second beat. Notes in brackets are not read aloud.',{size:9,style:'italic',color:[120,120,116],after:10});
   (concept.script||'').split('\n').forEach(line=>{
-    chk(20);const isNote=/^\[/.test(line.trim());
-    if(!line.trim()){y+=8;return;}
-    doc.setFont('helvetica',isNote?'italic':'normal');doc.setFontSize(isNote?9:12);
-    doc.setTextColor(isNote?120:10,isNote?120:10,isNote?116:8);
-    const wrapped=doc.splitTextToSize(line,W-margin*2-(isNote?20:0));
-    doc.text(wrapped,margin+(isNote?16:0),y);y+=wrapped.length*(isNote?12:15)+4;
+    if(!line.trim()){P.space(8);return;}
+    const isNote=/^\[/.test(line.trim());
+    P.write(line,{size:isNote?9:12,style:isNote?'italic':'normal',color:isNote?[120,120,116]:[10,10,8],indent:isNote?16:0,after:5});
   });
-  doc.setFillColor(61,153,96);doc.rect(margin,PH-40,W-margin*2,1,'F');
-  doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(100,100,96);
-  doc.text('INTERNAL USE ONLY — Forge Marketing',W/2,PH-26,{align:'center'});
+  P.footer(G,'INTERNAL USE ONLY — Forge Marketing');
   return doc.output('blob');
 }
 
@@ -2137,63 +2110,41 @@ function buildEditorDocxBlob(concept,client,idx){
 
 function buildEditorPdfBlob(concept,client,idx){
   const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:'pt',format:'letter'});
-  const W=doc.internal.pageSize.getWidth(),PH=doc.internal.pageSize.getHeight(),margin=56;let y=50;
-  const chk=n=>{if(y+n>PH-60){doc.addPage();y=50;}};
-  const A=[201,153,58];
-  const secTitle=t=>{chk(30);doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(...A);doc.text(t,margin,y);y+=14;};
-  const wrap=(t,size,style,color,indent)=>{doc.setFont('helvetica',style||'normal');doc.setFontSize(size);doc.setTextColor(...(color||[40,40,38]));const ls=doc.splitTextToSize(t,W-margin*2-(indent||0));chk(ls.length*(size+2)+6);doc.text(ls,margin+(indent||0),y);y+=ls.length*(size+2)+6;};
+  const P=pdfWriter(doc);const A=[201,153,58];
+  const sec=t=>{P.space(6);P.write(t,{size:9,style:'bold',color:A,after:8});};
   const eb=concept.edit_brief||{};
   const base=conceptBase(concept,idx);
-  doc.setFillColor(...A);doc.rect(margin,y,W-margin*2,3,'F');y+=16;
-  doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...A);
-  doc.text('FORGE MARKETING — EDITOR PACKAGE',margin,y);y+=20;
-  doc.setFont('helvetica','bold');doc.setFontSize(18);doc.setTextColor(20,20,18);
-  doc.text(sTxt(concept.title,'Untitled concept'),margin,y);y+=18;
-  doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(100,100,96);
-  doc.text((client.bizname||'Client')+' · '+new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}),margin,y);
-  y+=6;doc.setFillColor(...A);doc.rect(margin,y,W-margin*2,1,'F');y+=24;
-  secTitle('RAW FOOTAGE');
-  wrap(EDITOR_RAWS_NOTE,9,'italic',[100,100,96]);
-  secTitle('VERSIONS TO CUT — one edit per hook, label files '+base+'-v1 … -v'+editorVersionLines(concept).length);
+  P.rule(A,3);
+  P.write('FORGE MARKETING — EDITOR PACKAGE',{size:10,style:'bold',color:A,after:8});
+  P.write(sTxt(concept.title,'Untitled concept'),{size:18,style:'bold',color:[20,20,18],after:6});
+  P.write((client.bizname||'Client')+' · '+new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}),{size:10,color:[100,100,96],after:4});
+  P.rule(A,1);
+  sec('RAW FOOTAGE');
+  P.write(EDITOR_RAWS_NOTE,{size:9,style:'italic',color:[100,100,96],after:10});
+  sec('VERSIONS TO CUT — one edit per hook');
+  P.write('Label files '+base+'-v1 through -v'+editorVersionLines(concept).length,{font:'courier',style:'bold',size:8.5,color:[20,20,18],indent:6,after:10});
   editorVersionLines(concept).forEach(v=>{
-    chk(46);
-    doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(...A);
-    doc.text(v.label,margin,y);y+=11;
-    const hl=doc.splitTextToSize(v.text,W-margin*2-14);
-    doc.setFillColor(...A);doc.rect(margin,y-7,3,Math.max(14,hl.length*13),'F');
-    doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(20,20,18);
-    doc.text(hl,margin+10,y+2);y+=Math.max(18,hl.length*13)+4;
-    wrap(v.note,8,'italic',[130,130,124]);
+    P.write(v.label,{size:8,style:'bold',color:A,after:3});
+    P.write(v.text,{size:11,style:'bold',color:[20,20,18],indent:14,bar:A,after:4});
+    P.write(v.note,{size:8,style:'italic',color:[130,130,124],indent:14,after:9});
   });
-  secTitle('EDIT BRIEF');
+  sec('EDIT BRIEF');
   [['Pacing',eb.pacing],['Captions',eb.captions],['On-screen text',eb.on_screen_text],['B-roll',eb.broll],['End card',eb.end_card]].forEach(([label,val])=>{
-    chk(30);
-    doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(30,30,28);
-    doc.text(label,margin,y);
-    doc.setFont('helvetica','normal');doc.setTextColor(60,60,56);
-    const ls=doc.splitTextToSize(sTxt(val,'—'),W-margin*2-96);
-    doc.text(ls,margin+90,y);y+=Math.max(14,ls.length*13)+8;
+    P.write(label.toUpperCase(),{size:8,style:'bold',color:[30,30,28],after:2});
+    P.write(sTxt(val,'—'),{size:10,color:[60,60,56],indent:10,after:9});
   });
-  secTitle('DELIVERABLES');
-  wrap(EDITOR_DELIVERABLES,10);
-  if((client.brand||'').trim()){ secTitle('BRAND'); wrap(client.brand,10); }
-  secTitle('FULL SCRIPT (V1)');
+  sec('DELIVERABLES');
+  P.write(EDITOR_DELIVERABLES,{size:10,after:8});
+  if((client.brand||'').trim()){ sec('BRAND'); P.write(client.brand,{size:10,after:8}); }
+  sec('FULL SCRIPT (V1)');
   let n=0;
   (concept.script||'').split('\n').forEach(line=>{
-    if(!line.trim()){y+=6;return;}
+    if(!line.trim()){P.space(6);return;}
     n++;
     const isNote=/^\[/.test(line.trim());
-    chk(20);
-    doc.setFont('courier','normal');doc.setFontSize(8);doc.setTextColor(170,170,164);
-    doc.text(String(n).padStart(2,'0'),margin,y);
-    doc.setFont('helvetica',isNote?'italic':'normal');doc.setFontSize(isNote?9:11);
-    doc.setTextColor(isNote?120:10,isNote?120:10,isNote?116:8);
-    const ls=doc.splitTextToSize(line,W-margin*2-24);
-    doc.text(ls,margin+22,y);y+=ls.length*(isNote?11:14)+4;
+    P.write(String(n).padStart(2,'0')+'  '+line,{size:isNote?9:11,style:isNote?'italic':'normal',color:isNote?[120,120,116]:[10,10,8],after:5});
   });
-  doc.setFillColor(...A);doc.rect(margin,PH-40,W-margin*2,1,'F');
-  doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(100,100,96);
-  doc.text('INTERNAL USE ONLY — Forge Marketing',W/2,PH-26,{align:'center'});
+  P.footer(A,'INTERNAL USE ONLY — Forge Marketing');
   return doc.output('blob');
 }
 
@@ -2223,37 +2174,20 @@ function buildHooksDocxBlob(hooks,client,subtitle){
 
 function buildHooksPdfBlob(hooks,client,subtitle){
   const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:'pt',format:'letter'});
-  const W=doc.internal.pageSize.getWidth(),PH=doc.internal.pageSize.getHeight(),margin=56;let y=56;
-  const chk=n=>{if(y+n>PH-70){doc.addPage();y=56;}};
-  doc.setFillColor(201,153,58);doc.rect(margin,y,W-margin*2,3,'F');y+=18;
-  doc.setFont('helvetica','bold');doc.setFontSize(18);doc.setTextColor(201,153,58);
-  doc.text('FORGE MARKETING',margin,y);y+=18;
-  doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(136,136,128);
-  doc.text(subtitle||'Hook Bank',margin,y);y+=32;
-  doc.setFillColor(201,153,58);doc.rect(margin,y,W-margin*2,1,'F');y+=24;
-  doc.setFont('helvetica','bold');doc.setFontSize(20);doc.setTextColor(20,20,18);
-  doc.text(sTxt(client.bizname,'Client'),margin,y);y+=20;
-  doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(136,136,128);
-  doc.text(hooks.length+' hooks  ·  '+new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}),margin,y);y+=34;
+  const P=pdfWriter(doc);const A=[201,153,58];
+  P.rule(A,3);
+  P.write('FORGE MARKETING',{size:18,style:'bold',color:A,after:4});
+  P.write(subtitle||'Hook Bank',{size:11,color:[136,136,128],after:10});
+  P.rule(A,1);
+  P.write(sTxt(client.bizname,'Client'),{size:20,style:'bold',color:[20,20,18],after:6});
+  P.write(hooks.length+' hooks  ·  '+new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}),{size:10,color:[136,136,128],after:18});
   hooks.forEach((h,i)=>{
-    chk(90);
-    doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(201,153,58);
-    doc.text('HOOK '+String(i+1).padStart(2,'0')+(sTxt(h.type)?'  ·  '+sTxt(h.type).toUpperCase():''),margin,y);y+=14;
-    const hookLines=doc.splitTextToSize(sTxt(h.hook,'(empty hook)'),W-margin*2-16);
-    doc.setFillColor(201,153,58);doc.rect(margin,y,3,Math.max(20,hookLines.length*16),'F');
-    doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(20,20,18);
-    doc.text(hookLines,margin+12,y+12);y+=Math.max(26,hookLines.length*16)+8;
-    const why=sTxt(h.why);
-    if(why){
-      chk(30);
-      const whyLines=doc.splitTextToSize(why,W-margin*2-16);
-      doc.setFont('helvetica','italic');doc.setFontSize(10);doc.setTextColor(120,120,116);
-      doc.text(whyLines,margin+12,y);y+=whyLines.length*13+16;
-    } else { y+=8; }
+    P.write('HOOK '+String(i+1).padStart(2,'0')+(sTxt(h.type)?'  ·  '+sTxt(h.type).toUpperCase():''),{size:9,style:'bold',color:A,after:4});
+    P.write(sTxt(h.hook,'(empty hook)'),{size:13,style:'bold',color:[20,20,18],indent:14,bar:A,after:6});
+    if(sTxt(h.why)) P.write(sTxt(h.why),{size:10,style:'italic',color:[120,120,116],indent:14,after:12});
+    else P.space(8);
   });
-  doc.setFillColor(201,153,58);doc.rect(margin,PH-40,W-margin*2,1,'F');
-  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(136,136,128);
-  doc.text('Prepared by Forge Marketing  ·  forgemarketingteam.com',W/2,PH-26,{align:'center'});
+  P.footer(A,'Prepared by Forge Marketing  ·  forgemarketingteam.com');
   return doc.output('blob');
 }
 
