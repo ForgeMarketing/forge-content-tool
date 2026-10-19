@@ -14,8 +14,9 @@ One generation = 1–5 concepts. Each concept is what Forge sells:
 ## Architecture
 
 - **Prompt**: built entirely client-side in `buildPrompt()`. Exemplar scripts live in the `EXEMPLARS` const — swap in real winning scripts there to steer style.
-- **LLM**: Cloudflare worker `forge-api-proxy.kyle-d56.workers.dev` (open proxy; parses Claude's JSON server-side and returns the parsed object; accepts `{prompt, max_tokens}`). CORS allows only `https://forgemarketing.github.io` — generation does not work from localhost.
-- **Persistence**: Supabase PostgREST (anon key). Tables: `clients`, `client_versions`, `generations`, `client_files`.
+- **LLM**: Cloudflare worker `forge-api-proxy.kyle-d56.workers.dev`. It parses Claude's JSON server-side and returns the parsed object; it accepts `{prompt, max_tokens}` and `{action:'fetch_site', url}` from signed-in sessions only.
+- **Sign-in**: the password screen posts `{action:'login', password}` to the worker. The worker checks the password against its `TOOL_PASSWORD` secret (the password is never in this page) and returns a signed session token that lasts 12 hours; `callWorker` sends it as `Authorization: Bearer <token>`. A call without a valid token gets 401 whatever its Origin says, and a 401 brings the sign-in screen back. Limits: 5 sign-in attempts a minute per IP, 10 calls a minute per session, `max_tokens` capped at 40,000 and prompts at 200,000 characters. CORS allows `https://forgemarketing.github.io`, `http://localhost:8137` and `http://localhost:3100`; it only decides which pages a browser lets read the replies, and is not access control.
+- **Persistence**: the page holds no database key. Saved clients, versions, generations and file records are read and written through the API worker (`{action:'db', …}`) with the session token; the worker allows only the operations the page uses.
 - **Generations storage**: `generations.concepts` (jsonb) holds the full concept objects (`alt_hooks` + `brief` nested inside), `output_type: 'concepts'`, `hooks: []`, and `stage/goal/angle/length` store control **ids** (`cold`, `lead_form`, `90-120`, …). Rows with any other `output_type` are legacy and are normalized on load (`normalizeGeneration`) — old history keeps working, no schema migration was needed.
 
 ## Model output contract
@@ -32,7 +33,7 @@ One generation = 1–5 concepts. Each concept is what Forge sells:
 
 The profile's "AI Auto-Fill" section accepts a client website URL. The app POSTs `{action:'fetch_site', url}` to the worker, which crawls the homepage plus up to 4 service/testimonial/about-style subpages and returns stripped page text; the pages then run through the same extraction prompt and review panel as uploaded files. The extraction prioritizes verbatim social proof (→ proof1/proof2/voice) and the service list (→ appended to the "Anything Else" field as `Services offered:`).
 
-**Worker prerequisite:** the worker must include the fetch-site mode. The complete worker source lives at [worker/forge-api-proxy.js](worker/forge-api-proxy.js) — paste the whole file over the worker in the Cloudflare dashboard and deploy (the `ANTHROPIC_API_KEY` secret is set in worker Settings, never in the file). It also allows `http://localhost:8137` for local dev.
+**Worker deploy:** [worker/forge-api-proxy.js](worker/forge-api-proxy.js) is a copy. The worker deploys from the Forge platform monorepo, `apps/content-tool/worker`, with `npx wrangler deploy` (its `wrangler.toml` carries the rate-limit bindings, and its tests run in CI there). Don't paste this file into the dashboard. Secrets are set with `npx wrangler secret put <NAME>` and never written in a file: `ANTHROPIC_API_KEY`, `TOOL_PASSWORD` and `SESSION_SIGNING_KEY`.
 
 ## Concept focus
 

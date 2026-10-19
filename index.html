@@ -329,6 +329,7 @@ body:not(.in-ws) .toast-wrap{bottom:calc(20px + var(--safe-bottom))}
 @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
 .pw-btn{width:100%;padding:13px;background:var(--accent);color:#0c0c0b;border:none;border-radius:var(--r);font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:opacity 0.15s;margin-bottom:0}
 .pw-btn:hover{opacity:0.88}
+.pw-btn:disabled{opacity:0.6;cursor:wait}
 .pw-error{font-size:12px;color:var(--red);margin-top:10px;min-height:16px}
 </style>
 </head>
@@ -343,8 +344,8 @@ body:not(.in-ws) .toast-wrap{bottom:calc(20px + var(--safe-bottom))}
     </div>
     <div class="pw-sub">VSL Engine &nbsp;·&nbsp; Internal Tool</div>
     <label class="pw-label">Password</label>
-    <input type="password" class="pw-input" id="pw-input" placeholder="Enter password" onkeydown="if(event.key==='Enter')checkPassword()">
-    <button class="pw-btn" onclick="checkPassword()">Enter</button>
+    <input type="password" class="pw-input" id="pw-input" placeholder="Enter password" autocomplete="current-password" onkeydown="if(event.key==='Enter')checkPassword()">
+    <button class="pw-btn" id="pw-btn" onclick="checkPassword()">Enter</button>
     <div class="pw-error" id="pw-error"></div>
   </div>
 </div>
@@ -626,8 +627,6 @@ body:not(.in-ws) .toast-wrap{bottom:calc(20px + var(--safe-bottom))}
 
 <script>
 
-const SUPABASE_URL = 'https://paggzotozuhvstppcihc.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhZ2d6b3RvenVodnN0cHBjaWhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwMzcyNDcsImV4cCI6MjA5OTYxMzI0N30.ZfvoA8n-ZvBkHrDSSoDqL3jrDdCEsND1TVVZvYFd6i0';
 const WORKER_URL = 'https://forge-api-proxy.kyle-d56.workers.dev';
 
 // ── GENERATION CONFIG (single source of truth for controls + prompt) ──
@@ -726,44 +725,48 @@ So instead, we run a repeatable feedback loop: isolate why the top performer won
 So — if you want your next 20 winning ad creatives scripted, filmed, edited, and delivered in the next seven days, inside a system built to keep producing winners: tap below, book a call, and we'll see you on the other side.`}
 ];
 
-// ── SUPABASE CLIENT ──
+// ── CLIENT DATA ──
+// Client profiles, versions, generations and file records live in Supabase, but this
+// page never talks to Supabase and holds no key. Every read and write goes through the
+// API worker with the session token, and the worker allows only what this page does
+// (DB_TABLES in worker/forge-api-proxy.js). Updates and deletes go by id.
 const sb = {
-  async query(table, method='GET', body=null, params='') {
-    const url = `${SUPABASE_URL}/rest/v1/${table}${params}`;
-    const res = await fetch(url, {
-      method,
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`,
-        'Content-Type': 'application/json',
-        'Prefer': method==='POST' ? 'return=representation' : (method==='PATCH'?'return=representation':''),
-      },
-      body: body ? JSON.stringify(body) : null
-    });
-    if (!res.ok) { const err = await res.text(); throw new Error(err); }
-    const text = await res.text();
-    return text ? JSON.parse(text) : [];
-  },
-  async getAll(table, order='') { return await sb.query(table,'GET',null,`?order=${order||'created_at.desc'}`); },
-  async getWhere(table, col, val, order='') { return await sb.query(table,'GET',null,`?${col}=eq.${encodeURIComponent(val)}${order?'&order='+order:''}`); },
-  async insert(table, data) { return await sb.query(table,'POST',data); },
-  async update(table, col, val, data) { return await sb.query(table,'PATCH',data,`?${col}=eq.${encodeURIComponent(val)}`); },
-  async delete(table, col, val) { return await sb.query(table,'DELETE',null,`?${col}=eq.${encodeURIComponent(val)}`); },
+  async getAll(table, order='') { return await callWorker({ action:'db', table, op:'list', order: order || undefined }) || []; },
+  async getWhere(table, col, val, order='') { return await callWorker({ action:'db', table, op:'list', where:{ [col]: val }, order: order || undefined }) || []; },
+  async insert(table, data) { return await callWorker({ action:'db', table, op:'insert', row:data }); },
+  async update(table, col, val, data) { return await callWorker({ action:'db', table, op:'update', id:byId(col, val), row:data }); },
+  async delete(table, col, val) { return await callWorker({ action:'db', table, op:'delete', id:byId(col, val) }); },
 };
+function byId(col, val) {
+  if (col !== 'id') throw new Error('Updates and deletes go by id.');
+  return val;
+}
 
 // ── WORKER CLIENT ──
 // Always read the response body. A bare "Worker returned 500" hides the reason
 // the worker (or the Anthropic API behind it) actually failed.
+// Every call carries the session token from the sign-in screen; the worker
+// refuses anything without one (see SIGN-IN below).
 async function callWorker(payload) {
+  const session = getSession();
+  if(!session) {
+    showGate('Your session ended. Sign in again, then retry.');
+    throw new Error('You are signed out. Sign in again, then retry.');
+  }
   let res;
   try {
     res = await fetch(WORKER_URL, {
       method: 'POST',
-      headers: {'Content-Type':'application/json'},
+      headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + session.token},
       body: JSON.stringify(payload)
     });
   } catch(e) {
     throw new Error('Could not reach the API worker — check your connection or the worker URL.');
+  }
+
+  if(res.status === 401) {
+    showGate('Your session ended. Sign in again, then retry.');
+    throw new Error('You are signed out. Sign in again, then retry.');
   }
 
   const raw = await res.text();
@@ -1238,10 +1241,16 @@ async function deleteGenerationById(gid) {
 async function clearAllGenerations() {
   if (!activeClientId || !confirm('Delete all saved generations for this client? This cannot be undone.')) return;
   try {
-    await sb.query('generations','DELETE',null,`?client_id=eq.${encodeURIComponent(activeClientId)}`);
+    // One delete per row: the worker deletes only by id.
+    const gens = await sb.getWhere('generations','client_id',activeClientId,'saved_at_iso.desc');
+    for (const g of gens) await sb.delete('generations','id',g.id);
     clientGenerations[activeClientId] = [];
     renderHistory();
-  } catch(err) { toast('Clear failed: ' + err.message, 'error'); }
+  } catch(err) {
+    toast('Clear failed: ' + err.message, 'error');
+    await loadClientGenerations(activeClientId);
+    renderHistory();
+  }
 }
 
 // ── FORM UTILS ──
@@ -2829,27 +2838,74 @@ document.addEventListener('click', e => {
   if (handler) handler(el, e);
 });
 
-// ── PASSWORD GATE ──
-// Change this to whatever password you want
-const APP_PASSWORD = 'Forge2026';
-const PW_KEY = 'forge_auth';
+// ── SIGN-IN ──
+// The password is checked by the API worker, never in this page: a correct one
+// returns a session token (12 hours) that callWorker sends as a Bearer header.
+// The token lives in sessionStorage, so closing the tab signs you out.
+const SESSION_KEY = 'forge_session';
+let signingIn = false;
+let started = false;
+try { sessionStorage.removeItem('forge_auth'); } catch(e) {} // the old page-only gate's flag
 
-function checkPassword() {
+function getSession() {
+  try {
+    const s = JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null');
+    if(s && typeof s.token === 'string' && Number(s.expires_at) > Date.now() + 60000) return s;
+  } catch(e) { /* unreadable: treat as signed out */ }
+  try { sessionStorage.removeItem(SESSION_KEY); } catch(e) {}
+  return null;
+}
+
+function showGate(message) {
+  try { sessionStorage.removeItem(SESSION_KEY); } catch(e) {}
+  document.getElementById('pw-gate').style.display = '';
+  document.getElementById('pw-error').textContent = message || '';
+  setTimeout(() => { const el = document.getElementById('pw-input'); if(el) el.focus(); }, 100);
+}
+
+async function checkPassword() {
+  if(signingIn) return;
   const input = document.getElementById('pw-input');
   const errorEl = document.getElementById('pw-error');
+  const btn = document.getElementById('pw-btn');
   const val = input.value.trim();
-  if(val === APP_PASSWORD) {
-    sessionStorage.setItem(PW_KEY, 'true');
-    document.getElementById('pw-gate').style.display = 'none';
-    init();
-  } else {
-    input.classList.add('error');
-    errorEl.textContent = 'Incorrect password. Try again.';
+  if(!val) { input.focus(); return; }
+
+  signingIn = true;
+  btn.disabled = true;
+  btn.textContent = 'Checking…';
+  errorEl.textContent = '';
+  let res = null, data = {};
+  try {
+    res = await fetch(WORKER_URL, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ action: 'login', password: val })
+    });
+    data = await res.json().catch(() => ({}));
+  } catch(e) { res = null; }
+  signingIn = false;
+  btn.disabled = false;
+  btn.textContent = 'Enter';
+
+  if(res && res.ok && data.token) {
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify({ token: data.token, expires_at: data.expires_at }));
     input.value = '';
-    setTimeout(() => { input.classList.remove('error'); }, 400);
-    setTimeout(() => { errorEl.textContent = ''; }, 3000);
-    input.focus();
+    errorEl.textContent = '';
+    document.getElementById('pw-gate').style.display = 'none';
+    if(!started) { started = true; init(); }
+    return;
   }
+
+  const msg = !res ? 'Could not reach the sign-in server. Check your connection.'
+    : res.status === 401 ? 'Incorrect password. Try again.'
+    : res.status === 429 ? 'Too many tries. Wait a minute, then try again.'
+    : (data.error || ('Sign-in failed (' + res.status + ').'));
+  input.classList.add('error');
+  errorEl.textContent = msg;
+  input.value = '';
+  setTimeout(() => { input.classList.remove('error'); }, 400);
+  input.focus();
 }
 
 // ── THEME ──
@@ -2866,8 +2922,9 @@ function toggleTheme(){
 applyTheme(localStorage.getItem('forge_theme') || 'light');
 
 // ── START ──
-if(sessionStorage.getItem(PW_KEY) === 'true') {
+if(getSession()) {
   document.getElementById('pw-gate').style.display = 'none';
+  started = true;
   init();
 } else {
   setTimeout(() => { const el = document.getElementById('pw-input'); if(el) el.focus(); }, 100);
