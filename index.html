@@ -627,8 +627,6 @@ body:not(.in-ws) .toast-wrap{bottom:calc(20px + var(--safe-bottom))}
 
 <script>
 
-const SUPABASE_URL = 'https://paggzotozuhvstppcihc.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhZ2d6b3RvenVodnN0cHBjaWhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwMzcyNDcsImV4cCI6MjA5OTYxMzI0N30.ZfvoA8n-ZvBkHrDSSoDqL3jrDdCEsND1TVVZvYFd6i0';
 const WORKER_URL = 'https://forge-api-proxy.kyle-d56.workers.dev';
 
 // ── GENERATION CONFIG (single source of truth for controls + prompt) ──
@@ -727,30 +725,22 @@ So instead, we run a repeatable feedback loop: isolate why the top performer won
 So — if you want your next 20 winning ad creatives scripted, filmed, edited, and delivered in the next seven days, inside a system built to keep producing winners: tap below, book a call, and we'll see you on the other side.`}
 ];
 
-// ── SUPABASE CLIENT ──
+// ── CLIENT DATA ──
+// Client profiles, versions, generations and file records live in Supabase, but this
+// page never talks to Supabase and holds no key. Every read and write goes through the
+// API worker with the session token, and the worker allows only what this page does
+// (DB_TABLES in worker/forge-api-proxy.js). Updates and deletes go by id.
 const sb = {
-  async query(table, method='GET', body=null, params='') {
-    const url = `${SUPABASE_URL}/rest/v1/${table}${params}`;
-    const res = await fetch(url, {
-      method,
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`,
-        'Content-Type': 'application/json',
-        'Prefer': method==='POST' ? 'return=representation' : (method==='PATCH'?'return=representation':''),
-      },
-      body: body ? JSON.stringify(body) : null
-    });
-    if (!res.ok) { const err = await res.text(); throw new Error(err); }
-    const text = await res.text();
-    return text ? JSON.parse(text) : [];
-  },
-  async getAll(table, order='') { return await sb.query(table,'GET',null,`?order=${order||'created_at.desc'}`); },
-  async getWhere(table, col, val, order='') { return await sb.query(table,'GET',null,`?${col}=eq.${encodeURIComponent(val)}${order?'&order='+order:''}`); },
-  async insert(table, data) { return await sb.query(table,'POST',data); },
-  async update(table, col, val, data) { return await sb.query(table,'PATCH',data,`?${col}=eq.${encodeURIComponent(val)}`); },
-  async delete(table, col, val) { return await sb.query(table,'DELETE',null,`?${col}=eq.${encodeURIComponent(val)}`); },
+  async getAll(table, order='') { return await callWorker({ action:'db', table, op:'list', order: order || undefined }) || []; },
+  async getWhere(table, col, val, order='') { return await callWorker({ action:'db', table, op:'list', where:{ [col]: val }, order: order || undefined }) || []; },
+  async insert(table, data) { return await callWorker({ action:'db', table, op:'insert', row:data }); },
+  async update(table, col, val, data) { return await callWorker({ action:'db', table, op:'update', id:byId(col, val), row:data }); },
+  async delete(table, col, val) { return await callWorker({ action:'db', table, op:'delete', id:byId(col, val) }); },
 };
+function byId(col, val) {
+  if (col !== 'id') throw new Error('Updates and deletes go by id.');
+  return val;
+}
 
 // ── WORKER CLIENT ──
 // Always read the response body. A bare "Worker returned 500" hides the reason
@@ -1251,10 +1241,16 @@ async function deleteGenerationById(gid) {
 async function clearAllGenerations() {
   if (!activeClientId || !confirm('Delete all saved generations for this client? This cannot be undone.')) return;
   try {
-    await sb.query('generations','DELETE',null,`?client_id=eq.${encodeURIComponent(activeClientId)}`);
+    // One delete per row: the worker deletes only by id.
+    const gens = await sb.getWhere('generations','client_id',activeClientId,'saved_at_iso.desc');
+    for (const g of gens) await sb.delete('generations','id',g.id);
     clientGenerations[activeClientId] = [];
     renderHistory();
-  } catch(err) { toast('Clear failed: ' + err.message, 'error'); }
+  } catch(err) {
+    toast('Clear failed: ' + err.message, 'error');
+    await loadClientGenerations(activeClientId);
+    renderHistory();
+  }
 }
 
 // ── FORM UTILS ──

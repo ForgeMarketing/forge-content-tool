@@ -9,7 +9,11 @@
 //   TOOL_PASSWORD        the password people type on the tool's sign-in screen (16+ characters)
 //   SESSION_SIGNING_KEY  random bytes that sign session tokens (`openssl rand -base64 48`);
 //                        replacing it signs everyone out at once
+//   SUPABASE_SECRET_KEY  a Supabase secret key (sb_secret_…) for the client-data tables; it
+//                        bypasses RLS, so it lives only here, never in the page
 // Missing or weak secrets make the worker answer 503 to everything: it fails closed.
+// Client data also needs SUPABASE_URL (a plain var in wrangler.toml); without it or the
+// secret key, data calls answer 503 and generation keeps working.
 //
 // Access: every call except sign-in needs `Authorization: Bearer <token>`. The page
 // gets a token by POSTing { action: 'login', password }. A token is an HMAC-SHA256
@@ -22,6 +26,8 @@
 //   { prompt, max_tokens? }        -> Claude generation (streams internally, returns parsed JSON)
 //   { action: 'fetch_site', url }  -> crawl a client site (homepage + up to 4 service/proof/about
 //                                     subpages), return stripped text for the VSL Engine's auto-fill
+//   { action: 'db', table, op, … } -> read or write the client-data tables, only in the ways
+//                                     DB_TABLES lists (see CLIENT DATA below); returns the rows
 
 const MODEL = 'claude-opus-5';
 
@@ -48,6 +54,21 @@ const MAX_LOGIN_BODY_CHARS = 2000;
 const SESSION_TTL_SECONDS = 12 * 60 * 60; // one working day
 const MIN_PASSWORD_LENGTH = 16;
 const MIN_SIGNING_KEY_LENGTH = 32;
+
+// Client data (Supabase). Each table lists exactly what index.html does with it; anything
+// else is refused before Supabase is called. Updates and deletes always go by `id`, one
+// row at a time.
+const DB_TABLES = {
+  clients:         { ops: ['list', 'insert', 'update', 'delete'], filters: [],            orders: ['updated_at.desc'] },
+  client_versions: { ops: ['list', 'insert'],                     filters: ['client_id'], orders: ['saved_at.desc'] },
+  generations:     { ops: ['list', 'insert', 'update', 'delete'], filters: ['client_id'], orders: ['saved_at_iso.desc'] },
+  client_files:    { ops: ['list', 'insert', 'delete'],           filters: ['client_id'], orders: ['created_at.desc'] },
+};
+// clients has hyphenated columns ("offer-age", "close-type"), so hyphens are allowed.
+const DB_COLUMN = /^[a-z][a-z0-9_-]{0,62}$/;
+const DB_MAX_COLUMNS = 100;
+// The secret key is only ever sent to a Supabase project URL.
+const SUPABASE_URL_PATTERN = /^https:\/\/[a-z0-9]{20}\.supabase\.co$/;
 
 // Site-scan limits
 const FETCH_SITE_KEYWORDS = ['service','testimonial','review','about','case-stud','results','work','portfolio','pricing','why'];
@@ -80,15 +101,19 @@ export default {
     const session = await verifyToken(token, env.SESSION_SIGNING_KEY);
     if (!session) return unauthorized(origin);
 
-    if (!(await underLimit(env.API_LIMITER, 'sid:' + session.sid))) {
-      return reply({ error: 'Too many requests. Wait a minute and try again.', code: 'rate_limited' }, 429, origin);
-    }
-
     const parsed = await readJson(request, MAX_BODY_CHARS);
     if (parsed.error === 'too_large') return reply({ error: 'Request body is too large.' }, 413, origin);
     if (!parsed.value) return reply({ error: 'Request body was not valid JSON.' }, 400, origin);
     const body = parsed.value;
 
+    // Data calls have their own, larger allowance: autosave PATCHes after every pause in
+    // typing, which would use up the 10-a-minute model allowance in no time.
+    const limiter = body.action === 'db' ? env.DB_LIMITER : env.API_LIMITER;
+    if (!(await underLimit(limiter, 'sid:' + session.sid))) {
+      return reply({ error: 'Too many requests. Wait a minute and try again.', code: 'rate_limited' }, 429, origin);
+    }
+
+    if (body.action === 'db') return handleDb(body, env, origin);
     // Site scan needs no model call.
     if (body.action === 'fetch_site') return handleFetchSite(body, origin);
     if (body.action === 'login') return reply({ error: 'Already signed in.' }, 400, origin);
@@ -335,6 +360,117 @@ async function readJson(request, maxChars) {
   } catch {
     return { error: 'bad_json' };
   }
+}
+
+// ── CLIENT DATA ───────────────────────────────────────────────────────────────
+// The page holds no Supabase key. It sends { action: 'db', table, op, … } with its
+// session token, and the worker makes the PostgREST call with SUPABASE_SECRET_KEY:
+//   { op: 'list', where?: { client_id }, order? }  -> GET    (rows)
+//   { op: 'insert', row }                          -> POST   (the inserted rows)
+//   { op: 'update', id, row }                      -> PATCH  ?id=eq.<id> (the updated rows)
+//   { op: 'delete', id }                           -> DELETE ?id=eq.<id> ([])
+// The worker builds every URL itself from DB_TABLES, so a caller can't name another
+// table, filter, order or operator.
+
+async function handleDb(body, env, origin) {
+  const base = String(env.SUPABASE_URL || '').replace(/\/+$/, '');
+  if (!env.SUPABASE_SECRET_KEY || !SUPABASE_URL_PATTERN.test(base)) {
+    return reply({ error: 'Client data is not set up on this worker: it needs the SUPABASE_URL var (https://<project>.supabase.co) and the SUPABASE_SECRET_KEY secret.' }, 503, origin);
+  }
+
+  const req = dbRequest(body);
+  if (req.error) return reply({ error: req.error }, 400, origin);
+
+  const key = String(env.SUPABASE_SECRET_KEY);
+  const headers = { apikey: key, Accept: 'application/json' };
+  // A legacy service_role key is a JWT and also goes in Authorization. A new sb_secret_ key
+  // goes only in apikey (Supabase API keys guide, checked 2026-10-19).
+  if (key.startsWith('eyJ')) headers.Authorization = 'Bearer ' + key;
+  if (req.payload !== undefined) headers['Content-Type'] = 'application/json';
+  if (req.prefer) headers.Prefer = req.prefer;
+
+  const query = String(req.query);
+  let res;
+  try {
+    res = await fetch(`${base}/rest/v1/${body.table}${query ? '?' + query : ''}`, {
+      method: req.method,
+      headers,
+      body: req.payload === undefined ? undefined : JSON.stringify(req.payload),
+    });
+  } catch (e) {
+    return reply({ error: 'Could not reach the database: ' + (e.message || 'network error') }, 502, origin);
+  }
+
+  const raw = await res.text();
+  if (!res.ok) {
+    let detail = raw.trim().slice(0, 300);
+    try {
+      const j = JSON.parse(raw);
+      detail = j.message || j.error || detail;
+    } catch { /* not JSON — keep the raw text */ }
+    return reply({ error: `Database ${res.status}: ${detail}` }, 502, origin);
+  }
+  if (!raw.trim()) return reply([], 200, origin);
+  try {
+    return reply(JSON.parse(raw), 200, origin);
+  } catch {
+    return reply({ error: 'The database replied with something that was not JSON.' }, 502, origin);
+  }
+}
+
+// Turns a page request into { method, query, payload?, prefer? } or { error }.
+function dbRequest(body) {
+  const spec = Object.hasOwn(DB_TABLES, body.table) ? DB_TABLES[body.table] : null;
+  if (!spec) return { error: 'Unknown table.' };
+  if (!spec.ops.includes(body.op)) return { error: `"${String(body.op)}" is not allowed on ${body.table}.` };
+
+  const query = new URLSearchParams();
+  if (body.op === 'list') {
+    query.set('select', '*');
+    const where = body.where === undefined ? {} : body.where;
+    if (!isPlainObject(where) || Object.keys(where).length > 1) return { error: 'A list takes at most one filter.' };
+    for (const [col, value] of Object.entries(where)) {
+      if (!spec.filters.includes(col)) return { error: `${body.table} can't be filtered by "${col}".` };
+      if (!isRowId(value)) return { error: `Filter value for "${col}" must be a non-empty string or number.` };
+      query.set(col, 'eq.' + String(value));
+    }
+    const order = body.order === undefined ? spec.orders[0] : body.order;
+    if (!spec.orders.includes(order)) return { error: `${body.table} can't be ordered by "${String(order)}".` };
+    query.set('order', order);
+    return { method: 'GET', query };
+  }
+
+  if (body.op === 'update' || body.op === 'delete') {
+    if (!isRowId(body.id)) return { error: `${body.op} needs the row's id.` };
+    query.set('id', 'eq.' + String(body.id));
+  }
+  if (body.op === 'delete') return { method: 'DELETE', query, prefer: 'return=minimal' };
+
+  const rowError = checkRow(body.row);
+  if (rowError) return { error: rowError };
+  return {
+    method: body.op === 'insert' ? 'POST' : 'PATCH',
+    query,
+    payload: body.row,
+    prefer: 'return=representation',
+  };
+}
+
+function checkRow(row) {
+  if (!isPlainObject(row)) return 'row must be an object of column values.';
+  const cols = Object.keys(row);
+  if (!cols.length) return 'row has no columns.';
+  if (cols.length > DB_MAX_COLUMNS) return `row has more than ${DB_MAX_COLUMNS} columns.`;
+  const bad = cols.find(c => !DB_COLUMN.test(c));
+  return bad === undefined ? null : `"${bad.slice(0, 40)}" is not a column name.`;
+}
+
+function isPlainObject(v) {
+  return v !== null && typeof v === 'object' && !Array.isArray(v);
+}
+
+function isRowId(v) {
+  return (typeof v === 'string' && v.length > 0 && v.length <= 200) || (typeof v === 'number' && Number.isFinite(v));
 }
 
 // ── SITE SCAN ─────────────────────────────────────────────────────────────────
