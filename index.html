@@ -329,6 +329,7 @@ body:not(.in-ws) .toast-wrap{bottom:calc(20px + var(--safe-bottom))}
 @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
 .pw-btn{width:100%;padding:13px;background:var(--accent);color:#0c0c0b;border:none;border-radius:var(--r);font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:opacity 0.15s;margin-bottom:0}
 .pw-btn:hover{opacity:0.88}
+.pw-btn:disabled{opacity:0.6;cursor:wait}
 .pw-error{font-size:12px;color:var(--red);margin-top:10px;min-height:16px}
 </style>
 </head>
@@ -343,8 +344,8 @@ body:not(.in-ws) .toast-wrap{bottom:calc(20px + var(--safe-bottom))}
     </div>
     <div class="pw-sub">VSL Engine &nbsp;·&nbsp; Internal Tool</div>
     <label class="pw-label">Password</label>
-    <input type="password" class="pw-input" id="pw-input" placeholder="Enter password" onkeydown="if(event.key==='Enter')checkPassword()">
-    <button class="pw-btn" onclick="checkPassword()">Enter</button>
+    <input type="password" class="pw-input" id="pw-input" placeholder="Enter password" autocomplete="current-password" onkeydown="if(event.key==='Enter')checkPassword()">
+    <button class="pw-btn" id="pw-btn" onclick="checkPassword()">Enter</button>
     <div class="pw-error" id="pw-error"></div>
   </div>
 </div>
@@ -754,16 +755,28 @@ const sb = {
 // ── WORKER CLIENT ──
 // Always read the response body. A bare "Worker returned 500" hides the reason
 // the worker (or the Anthropic API behind it) actually failed.
+// Every call carries the session token from the sign-in screen; the worker
+// refuses anything without one (see SIGN-IN below).
 async function callWorker(payload) {
+  const session = getSession();
+  if(!session) {
+    showGate('Your session ended. Sign in again, then retry.');
+    throw new Error('You are signed out. Sign in again, then retry.');
+  }
   let res;
   try {
     res = await fetch(WORKER_URL, {
       method: 'POST',
-      headers: {'Content-Type':'application/json'},
+      headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + session.token},
       body: JSON.stringify(payload)
     });
   } catch(e) {
     throw new Error('Could not reach the API worker — check your connection or the worker URL.');
+  }
+
+  if(res.status === 401) {
+    showGate('Your session ended. Sign in again, then retry.');
+    throw new Error('You are signed out. Sign in again, then retry.');
   }
 
   const raw = await res.text();
@@ -2829,27 +2842,74 @@ document.addEventListener('click', e => {
   if (handler) handler(el, e);
 });
 
-// ── PASSWORD GATE ──
-// Change this to whatever password you want
-const APP_PASSWORD = 'Forge2026';
-const PW_KEY = 'forge_auth';
+// ── SIGN-IN ──
+// The password is checked by the API worker, never in this page: a correct one
+// returns a session token (12 hours) that callWorker sends as a Bearer header.
+// The token lives in sessionStorage, so closing the tab signs you out.
+const SESSION_KEY = 'forge_session';
+let signingIn = false;
+let started = false;
+try { sessionStorage.removeItem('forge_auth'); } catch(e) {} // the old page-only gate's flag
 
-function checkPassword() {
+function getSession() {
+  try {
+    const s = JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null');
+    if(s && typeof s.token === 'string' && Number(s.expires_at) > Date.now() + 60000) return s;
+  } catch(e) { /* unreadable: treat as signed out */ }
+  try { sessionStorage.removeItem(SESSION_KEY); } catch(e) {}
+  return null;
+}
+
+function showGate(message) {
+  try { sessionStorage.removeItem(SESSION_KEY); } catch(e) {}
+  document.getElementById('pw-gate').style.display = '';
+  document.getElementById('pw-error').textContent = message || '';
+  setTimeout(() => { const el = document.getElementById('pw-input'); if(el) el.focus(); }, 100);
+}
+
+async function checkPassword() {
+  if(signingIn) return;
   const input = document.getElementById('pw-input');
   const errorEl = document.getElementById('pw-error');
+  const btn = document.getElementById('pw-btn');
   const val = input.value.trim();
-  if(val === APP_PASSWORD) {
-    sessionStorage.setItem(PW_KEY, 'true');
-    document.getElementById('pw-gate').style.display = 'none';
-    init();
-  } else {
-    input.classList.add('error');
-    errorEl.textContent = 'Incorrect password. Try again.';
+  if(!val) { input.focus(); return; }
+
+  signingIn = true;
+  btn.disabled = true;
+  btn.textContent = 'Checking…';
+  errorEl.textContent = '';
+  let res = null, data = {};
+  try {
+    res = await fetch(WORKER_URL, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ action: 'login', password: val })
+    });
+    data = await res.json().catch(() => ({}));
+  } catch(e) { res = null; }
+  signingIn = false;
+  btn.disabled = false;
+  btn.textContent = 'Enter';
+
+  if(res && res.ok && data.token) {
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify({ token: data.token, expires_at: data.expires_at }));
     input.value = '';
-    setTimeout(() => { input.classList.remove('error'); }, 400);
-    setTimeout(() => { errorEl.textContent = ''; }, 3000);
-    input.focus();
+    errorEl.textContent = '';
+    document.getElementById('pw-gate').style.display = 'none';
+    if(!started) { started = true; init(); }
+    return;
   }
+
+  const msg = !res ? 'Could not reach the sign-in server. Check your connection.'
+    : res.status === 401 ? 'Incorrect password. Try again.'
+    : res.status === 429 ? 'Too many tries. Wait a minute, then try again.'
+    : (data.error || ('Sign-in failed (' + res.status + ').'));
+  input.classList.add('error');
+  errorEl.textContent = msg;
+  input.value = '';
+  setTimeout(() => { input.classList.remove('error'); }, 400);
+  input.focus();
 }
 
 // ── THEME ──
@@ -2866,8 +2926,9 @@ function toggleTheme(){
 applyTheme(localStorage.getItem('forge_theme') || 'light');
 
 // ── START ──
-if(sessionStorage.getItem(PW_KEY) === 'true') {
+if(getSession()) {
   document.getElementById('pw-gate').style.display = 'none';
+  started = true;
   init();
 } else {
   setTimeout(() => { const el = document.getElementById('pw-input'); if(el) el.focus(); }, 100);
